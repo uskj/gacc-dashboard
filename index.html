@@ -1,0 +1,382 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>STGACC 业务管理系统 · 准入情报矩阵</title>
+<style>
+:root{
+  --bg:#eef1f5; --card:#fff; --line:#e4e8ef; --txt:#2b3445; --dim:#7a8699;
+  --acc:#2f6fed; --ok:#35b779; --part:#f5a524; --pause:#e05555;
+  --focus:#2f6fed; --core-bg:#eef1f7; --core-tx:#3a4358; --nav-bg:#131a2a;
+  --nav-tx:#c6cede;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:var(--bg);color:var(--txt);font-family:'Segoe UI','Microsoft YaHei',sans-serif;font-size:13.5px}
+a{color:var(--acc);text-decoration:none}
+.app{display:grid;grid-template-columns:250px 1fr;min-height:100vh}
+
+/* ===== 左侧导航 ===== */
+.nav{background:var(--nav-bg);color:var(--nav-tx);display:flex;flex-direction:column;
+  position:sticky;top:0;height:100vh}
+.logo{padding:18px 16px 14px;border-bottom:1px solid #202a44}
+.logo .mark{display:flex;gap:10px;align-items:center}
+.logo .hex{width:34px;height:34px;background:linear-gradient(135deg,#3b82f6,#22d3ee);
+  clip-path:polygon(25% 0,75% 0,100% 50%,75% 100%,25% 100%,0 50%);
+  display:grid;place-items:center;color:#fff;font-weight:800;font-size:14px}
+.logo .t1{font-size:15px;font-weight:700;color:#fff;letter-spacing:.5px}
+.logo .t2{font-size:11px;color:var(--nav-tx);margin-top:2px}
+.navtools{display:flex;gap:8px;padding:12px 14px;align-items:center}
+.navtools .collapse{width:28px;height:28px;border-radius:7px;background:#1e2740;
+  display:grid;place-items:center;cursor:pointer;color:var(--nav-tx);font-size:13px}
+.navsearch{flex:1;background:#1e2740;border:1px solid #2a3554;border-radius:7px;
+  padding:7px 10px;color:var(--nav-tx);font-size:12px;display:flex;justify-content:space-between}
+.navsearch .kbd{color:#5f6d8c;font-size:10.5px}
+.icobtn{width:28px;height:28px;border-radius:7px;background:#1e2740;
+  display:grid;place-items:center;cursor:pointer;position:relative}
+.icobtn .bdg{position:absolute;top:-4px;right:-4px;background:#f5a524;color:#fff;
+  font-size:9px;padding:1px 4px;border-radius:8px;font-weight:700}
+.menu{flex:1;overflow:auto;padding:6px 10px}
+.mg{font-size:10.5px;color:#5f6d8c;letter-spacing:1.5px;padding:12px 8px 5px}
+.mi{display:flex;align-items:center;gap:9px;padding:8px 10px;border-radius:8px;
+  cursor:pointer;font-size:13px;color:var(--nav-tx)}
+.mi:hover{background:#1e2740;color:#fff}
+.mi.on{background:var(--acc);color:#fff;font-weight:600}
+.mi .ic{width:17px;text-align:center}
+.mi .n{margin-left:auto;background:#2a3554;color:#fff;font-size:10.5px;
+  padding:1px 7px;border-radius:9px}
+.mi.on .n{background:rgba(255,255,255,.25)}
+.hintcard{margin:10px 12px;background:#3a3115;border:1px solid #5c4d1c;
+  border-radius:9px;padding:10px 12px;font-size:11.5px;color:#f5d78a;line-height:1.55}
+.hintcard b{color:#ffd54a}
+.navver{padding:10px 16px;font-size:10.5px;color:#4a5578;border-top:1px solid #202a44}
+
+/* ===== 主区 ===== */
+.main{padding:20px 24px;overflow-x:auto}
+.pt{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:14px}
+.pt h1{font-size:19px}
+.pt .d{color:var(--dim);font-size:12px}
+
+.mcard{background:var(--card);border:1px solid var(--line);border-radius:12px;
+  overflow:hidden;box-shadow:0 1px 3px rgba(20,30,60,.05)}
+.mhead{padding:14px 18px 10px;border-bottom:1px solid var(--line);
+  display:flex;justify-content:space-between;align-items:flex-start;gap:12px}
+.mhead h2{font-size:15px}
+.mhead .sub{color:var(--dim);font-size:11.5px;margin-top:4px}
+.mhead .acts{display:flex;gap:8px}
+.btn{cursor:pointer;padding:7px 14px;border-radius:8px;border:1px solid var(--line);
+  background:#fff;color:var(--txt);font-size:12.5px}
+.btn:hover{border-color:var(--acc)}
+.btn.acc{background:var(--acc);color:#fff;border-color:var(--acc)}
+.btn.solid{background:#111827;color:#fff;border-color:#111827}
+
+/* 矩阵 */
+.mxwrap{overflow:auto;max-height:620px}
+.mx{border-collapse:collapse;font-size:12px;min-width:1400px}
+.mx th,.mx td{border:1px solid var(--line);height:34px;padding:0 6px;white-space:nowrap}
+.mx thead th{background:#f7f9fc;font-weight:600;color:#41506b;position:sticky;top:0;z-index:3;
+  text-align:center;font-size:11.5px;height:38px}
+.mx thead th .hl{background:linear-gradient(transparent 60%,#ffe9c2 60%)}
+.mx th.c0,.mx td.c0{position:sticky;left:0;z-index:4;background:#fff;min-width:118px}
+.mx thead th.c0{z-index:5;background:#f7f9fc}
+.mx td.c0{font-weight:600}
+.mx td.c0 .fl{font-size:15px;margin-right:5px}
+.mx td.c0 .cd{font-size:10px;color:var(--dim);font-weight:400}
+.mx tbody tr:hover td{background:#f3f8ff}
+.mx tbody tr:hover td.c0{background:#eef4ff}
+.mx td{background:#fff;text-align:center}
+
+/* CIFER 权威矩阵: 紧凑排版, 31 品类竖排表头一次全显示 */
+#ciferCard .mx{min-width:1000px}
+#ciferCard .mx thead th:not(.c0){writing-mode:vertical-rl;white-space:nowrap;
+  font-size:10px;height:72px;width:38px;letter-spacing:1px}
+#ciferCard .mx thead th.c0{width:118px;min-width:118px}
+#ciferCard .mx td{width:38px;padding:0 2px}
+#ciferCard .mx td.c0{width:118px;min-width:118px}
+#ciferCard .c{min-width:32px;padding:2px 3px;font-size:10px}
+
+/* 单元格色块 */
+.c{display:inline-block;min-width:56px;padding:3px 8px;border-radius:5px;
+  font-size:11px;font-weight:600;line-height:1.3}
+.c.core{background:var(--core-bg);color:var(--core-tx);border:1px solid #d7dce8}
+.c.focus{color:var(--focus);font-weight:800}
+.c.ok{background:rgba(53,183,121,.14);color:#1d7a4f;border:1px solid rgba(53,183,121,.35)}
+.c.part{background:rgba(245,165,36,.14);color:#a86a08;border:1px solid rgba(245,165,36,.4)}
+.c.pause{background:rgba(224,85,85,.14);color:#b03030;border:1px solid rgba(224,85,85,.4)}
+.c.none{background:#f2f4f8;color:#a0a8b8}
+.c.na{color:#c3c9d6;font-size:10px}
+
+/* 状态条 */
+.mstat{display:flex;justify-content:space-between;align-items:center;gap:14px;
+  padding:11px 18px;border-top:1px solid var(--line);background:#f8fafc;flex-wrap:wrap}
+.lg{display:flex;gap:10px;flex-wrap:wrap;font-size:11px;color:var(--dim)}
+.lg span{display:inline-flex;gap:5px;align-items:center}
+.sw{width:13px;height:13px;border-radius:3px;display:inline-block}
+.mstat .mid{font-size:12px;color:var(--dim)}
+.mstat .mid b{color:var(--txt)}
+
+/* 子表 */
+.subbar{margin-top:14px;background:var(--card);border:1px solid var(--line);
+  border-radius:12px;padding:13px 18px;display:flex;justify-content:space-between;
+  align-items:center;gap:12px;flex-wrap:wrap}
+.subbar .t{font-size:14px;font-weight:700}
+.subbar .t .star{color:#f5a524;margin-right:4px}
+.subbar .d{font-size:12px;color:var(--dim)}
+.subtbl{margin-top:8px;background:var(--card);border:1px solid var(--line);
+  border-radius:12px;overflow:auto;max-height:380px}
+.subtbl table{border-collapse:collapse;font-size:12px;width:100%;min-width:900px}
+.subtbl th{background:#f7f9fc;position:sticky;top:0}
+.subtbl th,.subtbl td{border:1px solid var(--line);padding:7px 10px;text-align:center}
+.subtbl td.tl{text-align:left}
+
+/* 详情弹层 */
+.mask{position:fixed;inset:0;background:rgba(15,23,42,.45);display:none;
+  place-items:center;z-index:99}
+.mask.show{display:grid}
+.pop{background:#fff;border-radius:14px;width:560px;max-width:92vw;max-height:80vh;
+  overflow:auto;box-shadow:0 18px 60px rgba(0,0,0,.25)}
+.pop .h{padding:15px 18px;border-bottom:1px solid var(--line);
+  display:flex;justify-content:space-between;align-items:center}
+.pop .h h3{font-size:15px}
+.pop .h .x{cursor:pointer;color:var(--dim);font-size:18px;line-height:1}
+.pop .b{padding:14px 18px;font-size:13px;line-height:1.7}
+.pop .kv{display:grid;grid-template-columns:96px 1fr;gap:6px 12px;margin-top:10px}
+.pop .kv .k{color:var(--dim);font-size:12px}
+
+footer{margin:18px;padding:14px 18px;font-size:11px;color:var(--dim);
+  background:var(--card);border:1px solid var(--line);border-radius:12px;line-height:1.7}
+.spin{display:inline-block;width:10px;height:10px;border:2px solid var(--acc);
+  border-top-color:transparent;border-radius:50%;animation:sp .8s linear infinite;vertical-align:-1px}
+@keyframes sp{to{transform:rotate(360deg)}}
+
+/* 动态情报 / 数据源 */
+.newslist{display:flex;flex-direction:column;gap:12px}
+.srcgrp{display:flex;flex-direction:column;gap:6px}
+.sg{font-size:12px;color:var(--dim);margin-bottom:2px}
+.newsit{background:#f8fafc;border:1px solid var(--line);border-radius:10px;
+  padding:9px 12px;font-size:12px;line-height:1.55}
+.newsit .nhead{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.newsit b{font-size:12.5px}
+.newsit a{color:var(--acc);text-decoration:none}
+.newsit a:hover{text-decoration:underline}
+.badge{font-size:11px;padding:2px 7px;border-radius:20px;white-space:nowrap}
+.badge.ok{background:rgba(53,183,121,.14);color:#0c7a46}
+.badge.bad{background:rgba(245,165,36,.16);color:#a86a08}
+.dim{color:var(--dim);font-size:11.5px}
+
+/* 公告重点关注告警 */
+.alertcard{border-color:#f0d9a8;background:linear-gradient(180deg,#fffdf6,#fff)}
+.alertcard .mhead{border-bottom-color:#f0e6cf}
+.alrt{display:flex;flex-direction:column;gap:3px;padding:9px 12px;border:1px solid var(--line);
+  border-radius:10px;background:#fff;margin-top:8px}
+.alrt .l1{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.alrt .l1 b{font-size:12.5px}
+.alrt .l2{color:var(--dim);font-size:11.5px;line-height:1.55}
+.badge.ban{background:rgba(224,85,85,.15);color:#b03030}
+.badge.lift{background:rgba(53,183,121,.16);color:#0c7a46}
+.badge.access{background:rgba(47,111,237,.14);color:#2657b8}
+</style>
+</head>
+<body>
+<div class="app">
+
+  <!-- 左侧导航 -->
+  <aside class="nav">
+    <div class="logo">
+      <div class="mark">
+        <div class="hex">S</div>
+        <div>
+          <div class="t1">STGACC 业务管理系统</div>
+          <div class="t2">牧业贸易 · 准入管理</div>
+        </div>
+      </div>
+    </div>
+    <div class="navtools">
+      <div class="collapse" title="折叠">≡</div>
+      <div class="navsearch"><span>客户 / 公告 / SOP / 合同</span><span class="kbd">按 /</span></div>
+      <div class="icobtn" title="提醒">🔔<span class="bdg">3</span></div>
+      <div class="icobtn" title="设置">⚙</div>
+    </div>
+    <div class="menu" id="menu">
+      <div class="mg">总览</div>
+      <div class="mi"><span class="ic">◧</span>仪表盘</div>
+      <div class="mi"><span class="ic">◎</span>政策雷达</div>
+      <div class="mi on"><span class="ic">▦</span>准入情报矩阵</div>
+      <div class="mi"><span class="ic">⚙</span>工厂动态</div>
+
+      <div class="mg">市场情报</div>
+      <div class="mi"><span class="ic">⇄</span>单栏比对<span class="n">215</span></div>
+      <div class="mi"><span class="ic">☗</span>中药材情报</div>
+      <div class="mi"><span class="ic">⌗</span>工厂档案</div>
+      <div class="mi" id="miCifer"><span class="ic">▣</span>GACC 注册矩阵<span class="n">183</span></div>
+      <div class="mi" id="miEntDir"><span class="ic">▤</span>境外企业准入名录<span class="n" id="entDirN">…</span></div>
+
+      <div class="mg">客户经营</div>
+      <div class="mi"><span class="ic">◈</span>线索池</div>      <div class="mi"><span class="ic">▽</span>商机漏斗</div>
+      <div class="mi"><span class="ic">⚇</span>客户档案</div>
+      <div class="mi"><span class="ic">⚑</span>准入项目<span class="n">10</span></div>
+      <div class="mi"><span class="ic">▤</span>任务日程</div>
+
+      <div class="mg">财务与交付</div>
+      <div class="mi"><span class="ic">₤</span>财务统计</div>
+      <div class="mi"><span class="ic">≡</span>文档中心</div>
+
+      <div class="mg">系统</div>
+      <div class="mi"><span class="ic">?</span>SOP / FAQ<span class="n">14</span></div>
+      <div class="mi" id="miSrc"><span class="ic">⛁</span>数据源与核对</div>
+    </div>
+    <div class="hintcard">
+      <b>现行制度</b>：280 号令 / 17 类目录<br>
+      <b>2026-06-01 施行</b>
+    </div>
+    <div class="navver">v1.0 · 本地部署</div>
+  </aside>
+
+  <!-- 主区 -->
+  <main class="main">
+    <div class="pt">
+      <h1>GACC 注册矩阵 · 准入情报</h1>
+      <div class="d">数据日期 <span id="dataDate">--</span> · 上次抓取 <span id="lastUpd">--</span></div>
+    </div>
+
+    <!-- 公告重点关注（公告 × CIFER 企业关联告警） -->
+    <div class="mcard alertcard" id="alertCard" style="margin-bottom:18px;display:none">
+      <div class="mhead">
+        <div><h2>★ 公告重点关注</h2>
+          <div class="sub">GACC/商务部/农业农村部公告 × CIFER 已注册境外企业关联（命中>0）· 数据源：<code>data/alerts.json</code></div>
+        </div>
+        <div class="acts"><button class="btn" id="btnAlert" onclick="renderAlerts()">↻ 重载</button></div>
+      </div>
+      <div id="alertBody" class="newslist" style="padding:14px 18px"></div>
+      <div class="mstat">
+        <div class="lg">
+          <span><i class="sw" style="background:rgba(224,85,85,.5)"></i>禁止/疫情传入</span>
+          <span><i class="sw" style="background:rgba(53,183,121,.5)"></i>解除禁令</span>
+          <span><i class="sw" style="background:rgba(47,111,237,.5)"></i>准入/检疫</span>
+        </div>
+        <div class="mid">重点 <b id="alertN">--</b> 条 · 更新 <span id="alertDate">--</span></div>
+      </div>
+    </div>
+
+    <!-- CIFER 权威注册矩阵 (GACC 官方核验层 · 主内容) -->
+    <div class="mcard" id="ciferCard">
+      <div class="mhead">
+        <div><h2>GACC 注册矩阵 · 183 国 × 31 品类</h2>
+          <div class="sub">进口食品境外生产企业注册名单（280 号令）· 数字 = 在册企业注册记录数，>0 = 该国该类目准入；系统点击格查看详情</div>
+        </div>
+        <div class="acts">
+          <button class="btn" id="btnCiferRefresh" onclick="renderCifer()">↻ 重载</button>
+        </div>
+      </div>
+      <div class="mxwrap">
+        <table class="mx">
+          <thead id="ciferHead"></thead>
+          <tbody id="ciferBody"></tbody>
+        </table>
+      </div>
+      <div class="mstat">
+        <div class="lg">
+          <span><i class="sw" style="background:rgba(53,183,121,.5)"></i>准入(注册>0)</span>
+          <span><i class="sw" style="background:#f2f4f8;border:1px solid var(--line)"></i>无注册记录</span>
+          <span style="color:#a86a08">· 数字为该品类在册企业数，点击查看该国明细</span>
+        </div>
+        <div class="mid">覆盖 <b id="ciferN">--</b> 国家 / <b>31</b> 品类 · 数据 <span id="ciferDate">--</span></div>
+      </div>
+    </div>
+
+    <!-- 境外企业准入名录 (CIFER 全量企业, 280号令 31品类 注册记录) -->
+    <div class="mcard" id="entDirCard" style="margin-top:18px">
+      <div class="mhead">
+        <div><h2>境外企业准入名录 · CIFER 注册明细</h2>
+          <div class="sub">280 号令境外生产企业注册记录（全品类 · 含注册编号 / 主管关区 / 有效期）· 数据源：GACC 单一窗口 CIFER 公开库 · 按 appSeqNo 去重</div>
+        </div>
+        <div class="acts"><button class="btn" onclick="renderEntDir()">↻ 重载</button></div>
+      </div>
+      <div id="entDirBody" style="padding:14px 18px;font-size:12px;color:var(--dim)">
+        <div class="dim"><span class="spin"></span> 名录加载中…</div>
+      </div>
+      <div class="mstat">
+        <div class="lg">
+          <span><i class="sw" style="background:rgba(53,183,121,.5)"></i>有效</span>
+          <span><i class="sw" style="background:rgba(245,165,36,.5)"></i>暂停进口</span>
+          <span><i class="sw" style="background:rgba(224,85,85,.5)"></i>注销/撤销</span>
+        </div>
+        <div class="mid">已抓取 <b id="entDirCov">--</b> 国 / <b id="entDirAll">--</b> 国 · 记录 <b id="entDirCount">--</b> · 更新 <span id="entDirDate">--</span></div>
+      </div>
+    </div>
+
+    <!-- 重点国情报总览 副表 (双源对照, 默认折叠) -->
+    <div class="mcard" id="mxCard" style="margin-top:18px">
+      <div class="mhead">
+        <div>
+          <h2>重点国情报总览 · GACC制度状态 × CIFER注册覆盖 × 进口量额 <span class="dim" style="font-weight:400">(三源对照 · 副表)</span></h2>
+          <div class="sub">GACC 转录：准入/部分/暂停 制度状态与国别优先级（核心/重点）；CIFER 官方库：注册工厂覆盖规模；UN Comtrade：2024 对华进口额（CIF）</div>
+        </div>
+        <div class="acts">
+          <button class="btn" id="btnRefresh">刷新</button>
+          <button class="btn solid" id="btnFold">展开</button>
+        </div>
+      </div>
+      <div id="mxFold">
+        <div class="subtbl">
+          <table>
+            <thead id="supHead"></thead>
+            <tbody id="supBody"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- 子品类下钻 -->
+    <div class="subbar" id="subBar">
+      <div class="t"><span class="star">★</span><span id="subTitle">肉与肉制品，子品类下钻（物种 × 部位）</span></div>
+      <div class="d">覆盖 <b id="subCov">--</b> 国 · 数据 <span id="subDate">--</span></div>
+    </div>
+    <div class="subtbl">
+      <table>
+        <thead id="subHead"></thead>
+        <tbody id="subBody"></tbody>
+      </table>
+    </div>
+
+    <!-- 动态情报: 各国主管当局最新新闻 + 数据源状态 -->
+    <div class="mcard" id="newsCard" style="margin-top:18px">
+      <div class="mhead">
+        <div>
+          <h2>动态情报 · 各国主管当局最新动向</h2>
+          <div class="sub">EFSA / FDA / FSANZ / MAFF / MFDS / MGAP 等官方源直连抓取；失败源标 ⚠ 不伪造</div>
+        </div>
+        <div class="acts"><button class="btn" onclick="renderNews()">↻ 重载</button></div>
+      </div>
+      <div id="newsBody" class="newslist"></div>
+    </div>
+    <div class="mcard" id="srcCard" style="margin-top:18px">
+      <div class="mhead">
+        <div><h2>数据源与核对</h2>
+          <div class="sub">各源抓取状态 · GACC 人工核验入口</div>
+        </div>
+      </div>
+      <div id="srcBody" class="newslist"></div>
+    </div>
+
+    <footer>
+      <b>数据口径</b>：矩阵格值以 GACC 总署 / 质检总局公开发布的《获得我国准入的食品所在国家（地区）名单》+ 现行「280 号令 · 17 类目录」为准；
+      「核心 / 重点」为本系统对国别的分级标记；被反爬 / 无法直连的站点在「数据源与核对」中标 ⚠ 并保留 GACC 侧权威公告链接。
+      <br><b>GACC 注册矩阵</b>：下方「GACC 注册矩阵 · 183 国 × 31 品类」为进口食品境外生产企业注册名单（280 号令 CIFER 系统）官方核验层，
+      数字 = 该品类在册企业注册记录数（>0 = 准入注册存在），与上方 21 类人工分级口径相互独立、互为佐证。
+      <br><b>刷新机制</b>：页面每 60s 自动拉取 <code>/data/latest.json</code>；「刷新」按钮触发服务端 <code>update_data.py</code> 重新抓取。
+    </footer>
+  </main>
+</div>
+
+<!-- 详情弹层 -->
+<div class="mask" id="mask">
+  <div class="pop">
+    <div class="h"><h3 id="popT">详情</h3><span class="x" id="popX">×</span></div>
+    <div class="b" id="popB"></div>
+  </div>
+</div>
+
+<script src="app.js"></script>
+</body>
+</html>

@@ -1,0 +1,166 @@
+{
+ "generated": "2026-10-09 18:26:03",
+ "count": 8,
+ "alerts": [
+  {
+   "kind": "ban",
+   "kindLabel": "禁止/疫情传入",
+   "source": "GACC",
+   "number": "2026年第122号",
+   "date": "2026-08-17",
+   "title": "海关总署 农业农村部公告2026年第122号（关于防止芬兰非洲猪瘟传入我国的公告）",
+   "url": "https://www.chinaport.gov.cn/pages/policy/policy-detail.html?policyId=17486",
+   "countries": [
+    "FIN"
+   ],
+   "countryLabel": "芬兰",
+   "matched": 4,
+   "suspended": 4,
+   "top": [
+    "HKFoods Finland Oy（猪肉产品）",
+    "Atria Finland Ltd.（猪肉产品）",
+    "HKFoods Finland Oy（猪肉产品）"
+   ]
+  },
+  {
+   "kind": "lift",
+   "kindLabel": "解除禁令",
+   "source": "GACC",
+   "number": "2026年第75号",
+   "date": "2026-05-29",
+   "title": "海关总署 农业农村部公告2026年第75号（关于解除巴西口蹄疫禁令的公告）",
+   "url": "https://www.chinaport.gov.cn/pages/policy/policy-detail.html?policyId=17372",
+   "countries": [
+    "BRA"
+   ],
+   "countryLabel": "巴西",
+   "matched": 36,
+   "suspended": 4,
+   "top": [
+    "PRIMA FOODS S.A（牛肉产品）",
+    "BRF S.A.（猪肉产品）",
+    "SCHREIBER FOODS DO BRASIL INDÚSTRIA ALIMENTÍCIA LTDA（巴氏杀菌乳和其他乳制品）"
+   ]
+  },
+  {
+   "kind": "access",
+   "kindLabel": "准入/检疫要求",
+   "source": "GACC",
+   "number": "2026年第14号",
+   "date": "2026-01-29",
+   "title": "海关总署公告2026年第14号（关于进口韩国野生水产品检验和卫生要求的公告）",
+   "url": "https://www.chinaport.gov.cn/pages/policy/policy-detail.html?policyId=17129",
+   "countries": [
+    "KOR"
+   ],
+   "countryLabel": "韩国",
+   "matched": 97,
+   "suspended": 6,
+   "top": [
+    "NAMSUN FISHERIES Co.（水产品）",
+    "KOREA COLD STORES Co., LTD YUNAN FACTORY（水产品）",
+    "KOREA COLD STORES Co., LTD GAMCHUN FIRST FACTORY（水产品）"
+   ]
+  },
+  {
+   "kind": "access",
+   "kindLabel": "准入/检疫要求",
+   "source": "GACC",
+   "number": "2026年第58号",
+   "date": "2026-05-08",
+   "title": "海关总署公告2026年第58号（关于进口莫桑比克野生水产品检验检疫要求的公告）",
+   "url": "https://www.chinaport.gov.cn/pages/policy/policy-detail.html?policyId=17283",
+   "countries": [
+    "MOZ"
+   ],
+   "countryLabel": "莫桑比克",
+   "matched": 23,
+   "suspended": 6,
+   "top": [
+    "Entreposto Frigorifico SIP（水产品）",
+    "Armazém Frigorífico do Porto de Pesca da Beira（水产品）",
+    "Armazem frigorifico da Crustamoz (Crustamoz, Lda)（水产品）"
+   ]
+  },
+  {
+   "kind": "access",
+   "kindLabel": "准入/检疫要求",
+   "source": "GACC",
+   "number": "2026年第42号",
+   "date": "2026-04-02",
+   "title": "海关总署公告2026年第42号（关于进口荷兰野生水产品检验检疫要求的公告）",
+   "url": "https://www.chinaport.gov.cn/pages/policy/policy-detail.html?policyId=17237",
+   "countries": [
+    "NLD"
+   ],
+   "countryLabel": "荷兰",
+   "matched": 17,
+   "suspended": 0,
+   "top": [
+    "Daalimpex Harlingen B.V.（水产品）",
+    "Kloosterboer IJmuiden B.V.（水产品）",
+    "Kloosterboer IJmuiden B.V.（水产品）"
+   ]
+  },
+  {
+   "kind": "access",
+   "kindLabel": "准入/检疫要求",
+   "source": "GACC",
+   "number": "2026年第82号",
+   "date": "2026-06-11",
+   "title": "海关总署公告2026年第82号（关于进口巴基斯坦干坚果检验检疫和卫生要求的公告）",
+   "url": "https://www.chinaport.gov.cn/pages/policy/policy-detail.html?policyId=17365",
+   "countries": [
+    "PAK"
+   ],
+   "countryLabel": "巴基斯坦",
+   "matched": 16,
+   "suspended": 0,
+   "top": [
+    "AZIZ PINE NUTS TRADING CO.（坚果与籽类）",
+    "KHANNAN ASSOCIATES（坚果与籽类）",
+    "MK ENTERPRISES（坚果与籽类）"
+   ]
+  },
+  {
+   "kind": "access",
+   "kindLabel": "准入/检疫要求",
+   "source": "GACC",
+   "number": "2026年第37号",
+   "date": "2026-04-10",
+   "title": "海关总署公告2026年第37号（关于进口马来西亚毛燕和食用燕窝检验检疫和卫生要求的公告）",
+   "url": "https://www.chinaport.gov.cn/pages/policy/policy-detail.html?policyId=17219",
+   "countries": [
+    "MYS"
+   ],
+   "countryLabel": "马来西亚",
+   "matched": 16,
+   "suspended": 1,
+   "top": [
+    "Amity AKF Enterprise Sdn. Bhd.（燕窝与燕窝制品）",
+    "Ricksen (M) Sdn Bhd（燕窝与燕窝制品）",
+    "Wansern Agrotech Sdn. Bhd.（燕窝与燕窝制品）"
+   ]
+  },
+  {
+   "kind": "access",
+   "kindLabel": "准入/检疫要求",
+   "source": "GACC",
+   "number": "2026年第26号",
+   "date": "2026-03-11",
+   "title": "海关总署公告2026年第26号（关于进口英国养殖水产品检验检疫要求的公告）",
+   "url": "https://www.chinaport.gov.cn/pages/policy/policy-detail.html?policyId=17177",
+   "countries": [
+    "GBR"
+   ],
+   "countryLabel": "英国",
+   "matched": 16,
+   "suspended": 0,
+   "top": [
+    "DR Collin and Son Ltd（水产品）",
+    "Constellation Cold Logistics UK Limited（水产品）",
+    "Lunar Freezing and cold storage（水产品）"
+   ]
+  }
+ ]
+}
