@@ -1,4 +1,4 @@
-const API_BASE = './data';
+const API_BASE = location.protocol.startsWith('http') ? location.origin + '/data' : './data';
 const STATES = { "核心":"core","重点":"focus","准入":"ok","部分":"part","暂停":"pause","未准入":"none","未跟踪":"na" };
 const CORE_ONLY = ["核心","重点"];
 
@@ -125,7 +125,7 @@ function renderSup() {
       <th title="GACC 转录 21 类制度准入状态">GACC 准入状态</th>
       <th title="CIFER 在册注册工厂总数">CIFER 注册工厂</th>
       <th title="CIFER 注册数最高的 3 个品类">CIFER Top3 品类</th>
-      <th title="UN Comtrade 2024 中国自该国进口额(CIF, 美元)">2024 进口额</th>
+      <th title="UN Comtrade 中国自该国进口额(CIF, 美元)。2025 为主值，含 2024 对比；2026 年 Comtrade 未发布">对华进口额</th>
       <th title="该国主管当局">主管当局</th>
     </tr>`;
 
@@ -156,13 +156,19 @@ function renderSup() {
       ? `<span class="c ok" style="display:inline-block">${sum} 家</span>`
       : '<span class="c na">—</span>';
 
-    // 第三维度: UN Comtrade 2024 进口额
+    // 第三维度: UN Comtrade 进口额 (2025 主值, 2024 对比)
     const imp = ct.imports || {};
     let impCell;
     if (imp.complete && imp.totalUSD > 0) {
       const m = imp.totalUSD / 1e6;
-      const topCats = imp.top3.map(x => `${x.cat} $${(x.usd/1e6).toFixed(0)}M`).join(' · ');
-      impCell = `<span class="c ok imp" style="display:inline-block;color:#16607f" title="${esc(topCats)}">$${(m/1e3).toFixed(1)}B</span>`;
+      const pv = imp.prev || {};
+      let yoy = '';
+      if (pv.complete && pv.totalUSD > 0) {
+        const d = (imp.totalUSD - pv.totalUSD) / pv.totalUSD * 100;
+        yoy = `<span class="dim" style="font-size:11px;margin-left:4px">${d >= 0 ? '▲' : '▼'}${Math.abs(d).toFixed(1)}%</span>`;
+      }
+      const topCats = (imp.top3 || []).map(x => `${x.cat} $${(x.usd/1e6).toFixed(0)}M`).join(' · ');
+      impCell = `<span class="c ok imp" style="display:inline-block;color:#16607f" title="${esc(topCats)}">${esc(String(imp.year||''))} $${(m/1e3).toFixed(2)}B</span>${yoy}`;
     } else if (imp.complete === false) {
       impCell = '<span class="c na">待补配额</span>';
     } else {
@@ -176,7 +182,6 @@ function renderSup() {
       <td>${ciferCell}</td>
       <td class="tl"><span class="dim">${top3}</span></td>
       <td class="tl">${impCell}</td>
-      <td>${impCell}</td>
       <td class="tl"><span class="dim">${esc(ct.auth||'—')}</span></td>
     </tr>`;
   }).join('');
@@ -207,17 +212,24 @@ function showSupDetail(code) {
       }).join('')
     : '<span class="k">CIFER</span><span class="c na">无该国家部记录</span>';
 
-  // 第三维度: UN Comtrade 进口额明细
+  // 第三维度: UN Comtrade 进口额明细 (2025 主值, 2024 对比)
   const imp = ct.imports || {};
+  const impPrev = imp.prev || {};
   const imp2 = DATA._meta && DATA._meta.imports3d || {};
   let impRows;
   if (imp.complete && imp.totalUSD > 0) {
     const rows = (imp.top3 || []).map(x =>
       `<span class="k">${esc(x.cat)}</span><span class="ok">$${(x.usd/1e6).toFixed(0)}M</span>`).join('')
       || '<span class="k">分章</span><span class="na">见 breakdown</span>';
-    impRows = `<div style="font-size:14px"><span class="c ok imp">2024 全年 ${esc(imp.year||'')}</span> <b>$${(imp.totalUSD/1e6/1000).toFixed(2)}B</b> CIF</div>
+    let prevLine = '';
+    if (impPrev.complete && impPrev.totalUSD > 0) {
+      const d = (imp.totalUSD - impPrev.totalUSD) / impPrev.totalUSD * 100;
+      prevLine = `<div style="margin-top:6px;font-size:13px"><span class="dim">${esc(String(impPrev.year||2024))} 全年</span> <b>$${(impPrev.totalUSD/1e6/1000).toFixed(2)}B</b> <span class="${d>=0?'ok':'na'}" style="margin-left:4px">${d>=0?'▲':'▼'}${Math.abs(d).toFixed(1)}%</span></div>`;
+    }
+    impRows = `<div style="font-size:14px"><span class="c ok imp">${esc(String(imp.year||''))} 全年</span> <b>$${(imp.totalUSD/1e6/1000).toFixed(2)}B</b> CIF</div>
       <div class="kv" style="margin-top:6px">${rows}</div>
-      <div class="dim" style="margin-top:4px;font-size:11px">${esc(imp.source||'')}</div>`;
+      ${prevLine}
+      <div class="dim" style="margin-top:4px;font-size:11px">2026 年 UN Comtrade 尚未发布（中国未报送，annual/monthly 均无）；源：${esc(imp.source||'')}</div>`;
   } else if (imp.complete === false) {
     impRows = '<div class="c na">该国家进口额待补：UN Comtrade 免费预览当日配额用尽，次日自动续抓。</div>';
   } else {
@@ -239,7 +251,7 @@ function showSupDetail(code) {
       <div class="kv">${cRows}</div>
     </div>
     <div class="srcgrp" style="margin-top:14px">
-      <div class="sg"><b>UN Comtrade · 2024 对华进口额 (CIF)</b></div>
+      <div class="sg"><b>UN Comtrade · 对华进口额 (CIF, 2024/2025)</b></div>
       ${impRows}
     </div>
     <div style="margin-top:12px;color:var(--dim);font-size:12px">
@@ -317,12 +329,33 @@ document.getElementById('btnRefresh').addEventListener('click', async () => {
   setTimeout(() => { b.innerHTML = '刷新'; delete b.dataset.busy; }, 1600);
 });
 
-document.getElementById('miSrc').addEventListener('click', () => {
-  const c = document.getElementById('srcCard');
-  if (!c) return;
-  c.scrollIntoView({ behavior: 'smooth' });
-  c.style.outline = '2px solid var(--acc)';
-  setTimeout(() => c.style.outline = '', 2000);
+/* ===== 左侧导航统一路由: 有内容则滚动定位, 无内容则弹「规划中」 ===== */
+function openPlanModal(name) {
+  document.getElementById('popT').textContent = `${name} · 规划中`;
+  document.getElementById('popB').innerHTML =
+    '<div style="font-size:14px">「<b>' + esc(name) + '</b>」属 STGACC 业务系统规划范围。</div>' +
+    '<div style="margin-top:10px;color:var(--dim);font-size:12px;line-height:1.7">' +
+    '当前 v1.0 仅交付「准入情报」模块：仪表盘 / 政策雷达 / 准入情报矩阵 / 工厂动态 / GACC 注册矩阵 / 境外企业准入名录 / 工厂档案 / 数据源与核对。其余模块规划中，敬请期待。</div>';
+  document.getElementById('mask').classList.add('show');
+}
+document.getElementById('menu').addEventListener('click', e => {
+  const mi = e.target.closest('.mi');
+  if (!mi) return;
+  document.querySelectorAll('#menu .mi').forEach(x => x.classList.remove('on'));
+  mi.classList.add('on');
+  if (mi.dataset.go === 'top') { window.scrollTo({ top: 0, behavior: 'smooth' }); return; }
+  const t = mi.dataset.go && document.getElementById(mi.dataset.go);
+  if (t) {
+    if (mi.dataset.go === 'mxCard') {
+      const f = document.getElementById('mxFold');
+      if (f && f.style.display === 'none') toggleFold();
+    }
+    t.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    t.style.outline = '2px solid var(--acc)';
+    setTimeout(() => { t.style.outline = ''; }, 2000);
+    return;
+  }
+  openPlanModal(mi.dataset.plan || mi.textContent.trim());
 });
 
 function startAuto() { clearInterval(autoTimer); autoTimer = setInterval(load, 60000); }
@@ -407,20 +440,6 @@ function showCiferDetail(c3, cat, n) {
     <div style="margin-top:12px;color:var(--dim);font-size:12px">${esc(mk)}</div>`;
   document.getElementById('mask').classList.add('show');
 }
-
-document.getElementById('miCifer').addEventListener('click', () => {
-  const c = document.getElementById('ciferCard');
-  if (!c) return;
-  c.scrollIntoView({ behavior: 'smooth' });
-  c.style.outline = '2px solid var(--acc)';
-  setTimeout(() => c.style.outline = '', 2000);
-});
-document.querySelector('.mi.on').addEventListener('click', () => {
-  const fold = document.getElementById('mxFold');
-  if (fold && fold.style.display === 'none') toggleFold();
-  const c = document.getElementById('mxCard');
-  if (c) c.scrollIntoView({ behavior: 'smooth' });
-});
 
 load(); startAuto(); renderCifer();
 
@@ -516,11 +535,4 @@ function showEntDetail(appNo) {
     <div style="margin-top:12px;color:var(--dim);font-size:11.5px">来源：GACC 单一窗口 CIFER 境外生产企业注册公开库（ciferquery.singlewindow.cn）· 280 号令</div>`;
   document.getElementById('mask').classList.add('show');
 }
-document.getElementById('miEntDir').addEventListener('click', () => {
-  const c = document.getElementById('entDirCard');
-  if (!c) return;
-  c.scrollIntoView({ behavior: 'smooth' });
-  c.style.outline = '2px solid var(--acc)';
-  setTimeout(() => c.style.outline = '', 2000);
-});
 loadEntDir();
