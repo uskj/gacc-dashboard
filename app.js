@@ -175,13 +175,24 @@ function renderSup() {
       impCell = '<span class="c na">—</span>';
     }
 
+    // 2026 镜像 (伙伴国对华出口 FOB, 已报送月份合计)
+    const imp26 = ct.imports26 || {};
+    let imp26Cell = '';
+    if (imp26.complete && imp26.totalUSD > 0) {
+      const ms = imp26.months || [];
+      const mm = ms.length ? `${ms[0]}${ms.length > 1 ? '–' + ms[ms.length - 1] : ''}月` : '';
+      const y26 = imp26.yoy != null
+        ? `<span class="dim" style="font-size:11px;margin-left:4px">${imp26.yoy >= 0 ? '▲' : '▼'}${Math.abs(imp26.yoy).toFixed(1)}%</span>` : '';
+      imp26Cell = `<div class="dim" style="margin-top:3px" title="镜像口径: 伙伴国报送的对华出口(FOB), 非中国CIF"><span style="font-size:11px">2026 ${mm}镜像</span> <b style="font-size:12px;color:#16607f">$${(imp26.totalUSD/1e6/1000).toFixed(2)}B</b>${y26}</div>`;
+    }
+
     return `<tr class="suprow" data-cd="${esc(ct.code)}">
       <td class="c0"><span class="fl">${ct.flag||''}</span><b>${esc(ct.name)}</b><div class="cd">${esc(ct.code)} · ${esc(ct.auth||'')}</div></td>
       <td>${prioTxt}</td>
       <td class="tl">${stTxt}</td>
       <td>${ciferCell}</td>
       <td class="tl"><span class="dim">${top3}</span></td>
-      <td class="tl">${impCell}</td>
+      <td class="tl">${impCell}${imp26Cell}</td>
       <td class="tl"><span class="dim">${esc(ct.auth||'—')}</span></td>
     </tr>`;
   }).join('');
@@ -239,6 +250,23 @@ function showSupDetail(code) {
     impRows += `<div class="dim" style="margin-top:4px;font-size:11px">待补国家：${esc(imp2.pending.join(' / '))}</div>`;
   }
 
+  // 2026 镜像口径 (伙伴国对华出口 FOB, 已报送月份合计)
+  const imp26 = ct.imports26 || {};
+  let imp26Rows = '';
+  if (imp26.complete && imp26.totalUSD > 0) {
+    const ms = imp26.months || [];
+    const mm = ms.length ? `${ms[0]}${ms.length > 1 ? '–' + ms[ms.length - 1] : ''} 月` : '';
+    const y26 = imp26.yoy != null
+      ? `<span class="${imp26.yoy >= 0 ? 'ok' : 'na'}" style="margin-left:4px">${imp26.yoy >= 0 ? '▲' : '▼'}${Math.abs(imp26.yoy).toFixed(1)}%</span>` : '';
+    const r26 = (imp26.top3 || []).map(x =>
+      `<span class="k">${esc(x.cat)}</span><span class="ok">$${(x.usd/1e6).toFixed(0)}M</span>`).join('');
+    imp26Rows = `<div style="margin-top:10px;font-size:14px"><span class="c part imp">2026 ${mm}·镜像</span> <b>$${(imp26.totalUSD/1e6/1000).toFixed(2)}B</b> FOB${y26}</div>
+      <div class="kv" style="margin-top:6px">${r26}</div>
+      <div class="dim" style="margin-top:4px;font-size:11px">口径：伙伴国报送的对华出口(FOB)，非中国 CIF；同比为 2025 同月合计。中国尚未向 Comtrade 报送 2026，此为镜像估算。</div>`;
+  } else {
+    imp26Rows = `<div class="dim" style="margin-top:10px;font-size:12px">2026：中国未向 Comtrade 报送；伙伴国镜像数据暂无（该国未向 Comtrade 报送对华月度出口，或配额待续）。</div>`;
+  }
+
   document.getElementById('popT').textContent = `${ct.flag||''} ${ct.name} · 双源对照`;
   document.getElementById('popB').innerHTML = `
     <div class="srcgrp">
@@ -251,8 +279,9 @@ function showSupDetail(code) {
       <div class="kv">${cRows}</div>
     </div>
     <div class="srcgrp" style="margin-top:14px">
-      <div class="sg"><b>UN Comtrade · 对华进口额 (CIF, 2024/2025)</b></div>
+      <div class="sg"><b>UN Comtrade · 对华进口额 (2024/2025 CIF · 2026 镜像)</b></div>
       ${impRows}
+      ${imp26Rows}
     </div>
     <div style="margin-top:12px;color:var(--dim);font-size:12px">
       三源口径互异：制度状态（准入/部分/暂停）为政策资格；注册覆盖为企业数；进口额为实际贸易量（美元）。互为补充，不做归约。
