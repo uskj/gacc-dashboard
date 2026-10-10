@@ -186,8 +186,13 @@ function renderSup() {
       imp26Cell = `<div class="dim" style="margin-top:3px" title="镜像口径: 伙伴国报送的对华出口(FOB), 非中国CIF"><span style="font-size:11px">2026 ${mm}镜像</span> <b style="font-size:12px;color:#16607f">$${(imp26.totalUSD/1e6/1000).toFixed(2)}B</b>${y26}</div>`;
     }
 
+    // leadPriority 真需求标注
+    const lp = ct.leadPriority;
+    const lpBadge = lp && lp.tier && lp.tier !== '—'
+      ? `<span class="dim" style="font-size:11px;margin-left:6px;color:#b03030" title="${esc(lp.label)}${lp.reason ? ' — ' + esc(lp.reason) : ''}">[${esc(lp.tier)}]</span>` : '';
+
     return `<tr class="suprow" data-cd="${esc(ct.code)}">
-      <td class="c0"><span class="fl">${ct.flag||''}</span><b>${esc(ct.name)}</b><div class="cd">${esc(ct.code)} · ${esc(ct.auth||'')}</div></td>
+      <td class="c0"><span class="fl">${ct.flag||''}</span><b>${esc(ct.name)}</b>${lpBadge}<div class="cd">${esc(ct.code)} · ${esc(ct.auth||'')}</div></td>
       <td>${prioTxt}</td>
       <td class="tl">${stTxt}</td>
       <td>${ciferCell}</td>
@@ -200,6 +205,44 @@ function renderSup() {
   document.querySelectorAll('#supBody tr.suprow').forEach(tr => {
     tr.addEventListener('click', () => showSupDetail(tr.dataset.cd));
   });
+
+  renderVerifiedLeads();
+}
+
+function renderVerifiedLeads() {
+  const vl = DATA.verifiedLeads2025 || {};
+  const card = document.getElementById('vlCard');
+  const body = document.getElementById('vlBody');
+  if (!card || !body) return;
+  const rows = Object.entries(vl).filter(([, v]) => v.complete && v.totalUSD > 0);
+  if (!rows.length) { card.style.display = 'none'; return; }
+  // 按优先级 tier 排序 (D 盘/真需求重的在前)
+  const tierRank = (t) => {
+    t = t || '';
+    if (t.includes('时效')) return 0;
+    if (t === 'A' || t === 'A/B') return 1;
+    if (t === 'A3' || t === 'A1') return 2;
+    if (t === 'D') return 3;
+    if (t === '弱') return 4;
+    return 5;
+  };
+  rows.sort((a, b) => tierRank(a[1].leadPriority && a[1].leadPriority.tier) - tierRank(b[1].leadPriority && b[1].leadPriority.tier));
+  card.style.display = '';
+  body.innerHTML = rows.map(([code, v]) => {
+    const lp = v.leadPriority || {};
+    const imp = (DATA.countries.find(c => c.code === code) || {}).imports || {};
+    const yoy = (imp.prev && imp.prev.complete && imp.prev.totalUSD > 0)
+      ? (() => { const d = (imp.totalUSD - imp.prev.totalUSD) / imp.prev.totalUSD * 100; return `<span class="${d>=0?'ok':'na'}" style="font-size:11px;margin-left:4px">${d>=0?'▲':'▼'}${Math.abs(d).toFixed(1)}%</span>`; })() : '';
+    const top3 = (v.top3 || []).map(x => `<span class="k">${esc(x.cat)}</span><span class="ok">$${(x.usd/1e6).toFixed(0)}M</span>`).join('');
+    return `<div class="srcgrp" style="margin-bottom:14px">
+      <div class="sg"><b>${code}</b> <span class="dim">2025 对华食品进口</span>
+        ${lp.tier ? `<span class="c part" style="font-size:10px;margin-left:6px">[${esc(lp.tier)}]</span>` : ''}
+      </div>
+      <div style="font-size:14px;margin:4px 0"><b>$${(v.totalUSD/1e6).toFixed(0)}M</b> CIF</div>
+      ${lp.label ? `<div class="dim" style="font-size:12px">${esc(lp.label)}${lp.reason ? ' — ' + esc(lp.reason) : ''}</div>` : ''}
+      <div class="kv" style="margin-top:6px">${top3}</div>
+    </div>`;
+  }).join('');
 }
 
 function showSupDetail(code) {
@@ -283,6 +326,7 @@ function showSupDetail(code) {
       ${impRows}
       ${imp26Rows}
     </div>
+    ${(()=>{ const vl=(DATA.verifiedLeads2025||{})[code]; if(!vl||!vl.complete||!vl.totalUSD) return ''; const lp=vl.leadPriority||{}; const rows=(vl.top3||[]).map(x=>`<span class="k">${esc(x.cat)}</span><span class="ok">$${(x.usd/1e6).toFixed(0)}M</span>`).join(''); return `<div class="srcgrp" style="margin-top:14px"><div class="sg"><b>真需求·进口实据 (${code} 对华食品进口 2025)</b></div><div style="font-size:14px;margin-top:6px"><b>$${(vl.totalUSD/1e6).toFixed(0)}M</b> CIF${lp.tier?` <span class="dim" style="font-size:11px">[${esc(lp.tier)}]</span>`:''}</div>${lp.label?`<div class="dim" style="font-size:12px;margin-top:4px">${esc(lp.label)}${lp.reason?' — '+esc(lp.reason):''}</div>`:''}<div class="kv" style="margin-top:6px">${rows}</div></div>`; })()}
     <div style="margin-top:12px;color:var(--dim);font-size:12px">
       三源口径互异：制度状态（准入/部分/暂停）为政策资格；注册覆盖为企业数；进口额为实际贸易量（美元）。互为补充，不做归约。
     </div>`;
