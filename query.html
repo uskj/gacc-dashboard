@@ -73,13 +73,13 @@ table.cmp td.rn{font-family:Consolas,monospace;font-size:11px;color:var(--cif);w
 .badge{font-size:10px;padding:1px 6px;border-radius:10px;background:#eef1f6;color:var(--dim)}
 .badge.on{background:rgba(53,183,121,.15);color:#1d7a4f}
 .badge.off{background:#f0f0f0;color:#aaa}
-.eg{border:1px solid var(--line);border-radius:8px;margin-bottom:8px;overflow:hidden;background:#fff}
-.eg-h{display:flex;align-items:center;gap:10px;padding:9px 12px;cursor:pointer;background:#f7f9fc;font-size:12.5px;font-weight:600}
-.eg-h:hover{background:#eef3fe}
-.eg-h .eg-n{margin-left:auto;font-size:11px;color:var(--dim);font-weight:400}
-.eg-h .eg-caret{color:var(--dim);transition:transform .15s;display:inline-block}
-.eg[data-open="1"] .eg-h .eg-caret{transform:rotate(90deg)}
-.eg-b{border-top:1px solid var(--line)}
+.chip.cx{cursor:pointer;border-style:dashed}
+.chip.cx:hover{border-color:var(--cif);background:#eaf1ff}
+.chip.cx.on{border-color:var(--cif);background:#e3edff;box-shadow:0 0 0 2px rgba(38,87,184,.12)}
+.chip.cx .caret{transition:transform .15s;display:inline-block}
+.chip.cx.on .caret{transform:rotate(90deg)}
+.cx-box{display:none}
+.cx-box.open{display:block;margin-top:10px;border-top:1px dashed var(--line);padding-top:10px}
 .tw{max-height:360px;overflow:auto}
 .collapse{padding:8px 13px;font-size:11.5px;color:var(--dim);background:#f7f9fc;border-top:1px solid var(--line);
   cursor:pointer;user-select:none;text-align:center}
@@ -227,6 +227,7 @@ bindAC($('qCountry'),$('acCountry'),()=>CN,renderCountry);
 function renderCountry(name){
   const c=Object.values(DATA.countries).find(x=>x.name===name);
   const box=$('resCountry');
+  box.dataset.name=name;
   if(!c){box.innerHTML='<div class="empty">未找到国家：'+esc(name)+'</div>';return;}
   let h='<div class="res"><div class="rh"><span>🇺🇳 '+esc(c.name)+'</span>'
     +'<span class="cnt">'+(c.num?('国码 '+c.num):'')+'</span></div>';
@@ -243,11 +244,16 @@ function renderCountry(name){
   } else h+='<div class="hint">无官方准入品类</div>';
   h+='</div>';
 
-  // chinaport 在册注册
-  h+='<div class="sec"><span class="st st-cif">chinaport 在册注册</span>';
-  const cr=Object.entries(c.cifer_reg||{});
-  if(cr.length){
-    h+='<div class="chips">'+cr.map(([sub,n])=>'<span class="chip cif">'+esc(sub)+' <span class="m">'+n+' 家</span></span>').join('')+'</div>';
+  // 可联系企业（标签点击展开，全部收录）
+  const es=c.enterprises||[];
+  h+='<div class="sec"><span class="st st-cif">可联系企业 ('+es.length+' 家)</span>';
+  if(es.length){
+    const groups={};
+    es.forEach(e=>{const k=e.sub||e.cat||'其他';(groups[k]=groups[k]||[]).push(e);});
+    const gkeys=Object.keys(groups).sort((a,b)=>groups[b].length-groups[a].length||a.localeCompare(b,'zh'));
+    h+='<div class="hint">点击分类标签展开/收起 · '+gkeys.length+' 类全部收录（无条数上限）</div>'
+      +'<div class="chips">'+gkeys.map(k=>'<span class="chip cif cx" data-sub="'+esc(k)+'">'+esc(k)+' <span class="m">'+groups[k].length+' 家</span><span class="caret">▸</span></span>').join('')+'</div>'
+      +'<div class="cx-box"></div>';
   } else h+='<div class="hint">无在册注册企业</div>';
   h+='</div>';
 
@@ -263,48 +269,33 @@ function renderCountry(name){
       +'<div class="hint">无官方准入、无在册注册企业、也不在疫病禁输名单 —— 当前无任何农产品食品可输华。需先走 GACC 准入申请。</div></div>';
   }
 
-  // 企业清单（按品类分组，全部可查）
-  if((c.enterprises||[]).length){
-    const es=c.enterprises;
-    const groups={};
-    es.forEach(e=>{const k=e.sub||e.cat||'其他';(groups[k]=groups[k]||[]).push(e);});
-    const gkeys=Object.keys(groups).sort((a,b)=>groups[b].length-groups[a].length||a.localeCompare(b,'zh'));
-    h+='<div class="sec"><span class="st st-cif">可联系企业 ('+es.length+')</span>'
-      +'<div class="hint">按品类分组 · 点分类展开/收起 · <a href="javascript:;" onclick="egAll(1)">全部展开</a> / <a href="javascript:;" onclick="egAll(0)">全部收起</a></div>';
-    gkeys.forEach((k,i)=>{
-      const list=groups[k];
-      h+='<div class="eg" data-open="'+(i===0?1:0)+'">'
-        +'<div class="eg-h" onclick="egToggle(this)"><span>'+esc(k)+'</span>'
-        +'<span class="eg-n">'+list.length+' 家</span><span class="eg-caret">▸</span></div>'
-        +'<div class="eg-b"'+(i===0?'':' style="display:none"')+'>'
-        +'<div class="tw"><table class="cmp"><thead><tr>'
-        +'<th>企业</th><th>产品</th><th>注册号</th><th>状态</th></tr></thead><tbody>'
-        +list.map(e=>'<tr><td data-label="企业">'+esc(e.name||'—')+'</td>'
-          +'<td data-label="产品">'+esc(e.prod||e.sub||e.cat||'')+'</td>'
-          +'<td data-label="注册号" class="rn">'+esc(e.regNo||'')+'</td>'
-          +'<td data-label="状态"><span class="badge '+(e.src==='CIFER'?(e.type==='有效'?'on':''):'')+'">'+esc(e.src==='CIFER'?('CIFER·'+(e.type||'')):((e.type||'在册').replace(/\n/g,'/')))+'</span></td>'
-          +'</tr>').join('')
-        +'</tbody></table></div></div></div>';
-    });
-    h+='</div>';
-  }
-
   h+='</div>';
   box.innerHTML=h;
 }
 
-function egToggle(el){
-  const eg=el.parentElement, b=eg.querySelector('.eg-b');
-  const open=eg.dataset.open==='1';
-  eg.dataset.open=open?'0':'1';
-  b.style.display=open?'none':'block';
+function entRow(e){
+  return '<tr><td data-label="企业">'+esc(e.name||'—')+'</td>'
+    +'<td data-label="产品">'+esc(e.prod||e.sub||e.cat||'')+'</td>'
+    +'<td data-label="注册号" class="rn">'+esc(e.regNo||'')+'</td>'
+    +'<td data-label="状态"><span class="badge '+(e.src==='CIFER'?(e.type==='有效'?'on':''):'')+'">'+esc(e.src==='CIFER'?('CIFER·'+(e.type||'')):((e.type||'在册').replace(/\n/g,'/')))+'</span></td>'
+    +'</tr>';
 }
-function egAll(open){
-  document.querySelectorAll('#resCountry .eg').forEach(eg=>{
-    eg.dataset.open=open?'1':'0';
-    const b=eg.querySelector('.eg-b'); if(b) b.style.display=open?'block':'none';
-  });
+function entTable(name,sub){
+  const c=Object.values(DATA.countries).find(x=>x.name===name);
+  const list=(c&&(c.enterprises||[])).filter(e=>(e.sub||e.cat||'其他')===sub);
+  return '<div class="tw"><table class="cmp"><thead><tr><th>企业</th><th>产品</th><th>注册号</th><th>状态</th></tr></thead><tbody>'
+    +list.map(entRow).join('')+'</tbody></table></div>';
 }
+$('resCountry').addEventListener('click',ev=>{
+  const chip=ev.target.closest('.chip.cx'); if(!chip) return;
+  const box=$('resCountry').querySelector('.cx-box');
+  const sub=chip.dataset.sub;
+  const was=box.classList.contains('open')&&box.dataset.sub===sub;
+  document.querySelectorAll('#resCountry .chip.cx').forEach(x=>x.classList.remove('on'));
+  box.classList.toggle('open',!was);
+  if(!was){ box.dataset.sub=sub; chip.classList.add('on'); box.innerHTML=entTable($('resCountry').dataset.name,sub); }
+  else { box.dataset.sub=''; box.innerHTML=''; }
+});
 
 /* ================= 查询 ② 产品 -> 国家 ================= */
 bindAC($('qCat'),$('acCat'),()=>CT.concat(PD),renderCat);
