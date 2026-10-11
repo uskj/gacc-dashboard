@@ -516,28 +516,54 @@ function showCiferDetail(c3, cat, n) {
 
 load(); startAuto(); renderCifer(); renderQuery();
 
-/* ===== 准入双向查询: 国→品类 / 品类→国 (CIFER 有效注册口径) ===== */
+/* ===== 准入双向查询: 国→品类 / 品类→国 (三源结构: official / cifer / banned_animals) ===== */
 let qData = null;
+let _qBound = false;
+let _qStatsEl = null;
+function qStatsRow(meta) {
+  if (!_qStatsEl) _qStatsEl = document.getElementById('qStats');
+  if (!_qStatsEl) return;
+  const m = meta || {};
+  _qStatsEl.innerHTML = `
+    <span>官方品类 <b>${m.official_cats ?? '--'}</b> · 覆盖 <b>${Object.keys(qData.countries).length}</b> 国</span>
+    <span>疫病禁止 <b>${m.banned_countries ?? '--'}</b> 国 / <b>${m.banned_entries ?? '--'}</b> 条</span>
+    <span>生成 <b>${esc(m.generated || '--')}</b></span>`;
+}
+function qSrcNote() {
+  const m = (qData && qData._meta) || {};
+  const links = (m.links || []).map((u, i) =>
+    `<a href="${esc(u)}" target="_blank" rel="noopener">官方核验${i + 1}↗</a>`).join(' · ');
+  return `<div class="qsrc">来源：${esc(m.rule || '')} ${links ? '· ' + links : ''}</div>`;
+}
+function qBanNote(animals) {
+  if (!animals || !animals.length) return '';
+  const flat = animals.flat();
+  const head = flat.slice(0, 3).map(esc).join('、');
+  return `<div class="qban">⚠ 疫病禁止：${head}${flat.length > 3 ? '… 等 ' + flat.length + ' 条' : ''}</div>`;
+}
 async function renderQuery() {
   try {
     const r = await fetch(API_BASE + '/query.json?t=' + Date.now(), { cache: 'no-store' });
     qData = await r.json();
   } catch { qData = null; }
   if (!qData) return;
-  document.getElementById('qStatCountries').textContent = qData._meta.total_countries;
-  document.getElementById('qStatCats').textContent = qData._meta.total_categories;
-  document.getElementById('qStatActive').textContent = qData._meta.total_active;
-  // datalist: 国家 (中文名 + ISO3 + ISO2), 品类
+  qStatsRow(qData._meta);
+  // datalist: 国家 (中文名 + 国家码), 品类关键词
   const cl = document.getElementById('qCountryList');
-  const cnOpts = Object.entries(qData.countries).map(([code, c]) =>
-    `<option value="${esc(c.name || code)}">${esc(code)} · ${c.name || ''}</option>`).join('');
-  cl.innerHTML = cnOpts + Object.entries(qData.countries).map(([code, c]) =>
-    `<option value="${code}">${c.name || ''} (${code})</option>`).join('');
+  cl.innerHTML = Object.entries(qData.countries).map(([code, c]) =>
+    `<option value="${esc(c.name || code)}">${esc(code)} · ${esc(c.name || '')}</option>`).join('') +
+    Object.entries(qData.countries).map(([code, c]) =>
+      `<option value="${code}">${esc(c.name || '')} (${code})</option>`).join('');
   document.getElementById('qCatList').innerHTML =
-    Object.keys(qData.categories).map(k => `<option value="${esc(k)}">${qData.categories[k].total} 家 / ${Object.keys(qData.categories[k].countries).length} 国</option>`).join('');
+    Object.keys(qData.categories).map(k => {
+      const v = qData.categories[k];
+      const off = (v.official || []).length;
+      const cif = (v.cifer || []).length;
+      return `<option value="${esc(k)}">${off} 国官方准入 · ${cif} 国注册辅证</option>`;
+    }).join('');
   bindQueryEvents();
+  onCountryQuery(); onCatQuery();
 }
-let _qBound = false;
 function bindQueryEvents() {
   if (_qBound) return; _qBound = true;
   document.getElementById('qCountry').addEventListener('input', onCountryQuery);
@@ -552,6 +578,8 @@ function matchCountry(q) {
     if (name.includes(q) || code.toLowerCase().startsWith(q) ||
         (code.slice(0, 2).toLowerCase() === q.slice(0, 2) && q.length >= 2)) out.push([code, c]);
   }
+  out.sort((a, b) => ((a[0].toLowerCase() === q ? 0 : 1) - (b[0].toLowerCase() === q ? 0 : 1)) ||
+                      (a[1].official || []).length - (b[1].official || []).length);
   return out;
 }
 function onCountryQuery() {
@@ -559,26 +587,31 @@ function onCountryQuery() {
   const sel = matchCountry(document.getElementById('qCountry').value);
   if (sel === null) { box.innerHTML = '<div class="qempty">输入国家名 / 国家代码</div>'; return; }
   if (!sel.length) { box.innerHTML = '<div class="qempty">无匹配国家</div>'; return; }
-  if (sel.length > 30) { sel.length = 30; }
+  if (sel.length > 20) sel.length = 20;
   box.innerHTML = sel.map(([code, c]) => {
-    const cats = c.cats || {};
-    const n = Object.keys(cats).length;
-    const total = Object.values(cats).reduce((a, b) => a + b, 0);
-    const top = Object.entries(cats).slice(0, 12).map(([k, v]) =>
-      `<div class="qi"><span>${esc(k)}</span><span class="n">${v} 家</span></div>`).join('');
-    const more = n > 12 ? `<div class="qmore">… 共 ${n} 个品类准入，合计 ${total} 家有效注册</div>` :
-      (n > 0 ? `<div class="qmore">共 ${n} 个品类准入 · 合计 ${total} 家有效注册</div>` : '');
-    const head = `<div class="qh"><b>${esc(c.name || code)}</b><span class="dim">${code} · ${n} 个品类准入</span></div>`;
-    return n
-      ? `<div class="qres" style="margin-bottom:10px">${head}${top}${more}</div>`
-      : `<div class="qres" style="margin-bottom:10px"><div class="qempty">${esc(c.name || code)} 无有效注册品类</div></div>`;
+    const off = c.official || [];
+    const cif = c.cifer || [];
+    const offHtml = off.length
+      ? off.map(x => `<div class="qi"><span>${esc(x)}</span><span class="n">官方准入</span></div>`).join('')
+      : '<div class="qi"><span class="cd">官方名单未收录（8 大类之外或暂未转录）</span></div>';
+    const cifHtml = cif.length
+      ? cif.map(x => `<div class="qi"><span>${esc(x)}</span><span class="n">在册注册</span></div>`).join('')
+      : '<div class="qi"><span class="cd">无在册注册记录（辅证缺失）</span></div>';
+    return `<div class="qres" style="margin-bottom:10px">
+      <div class="qh"><b>${esc(c.name || code)}</b><span class="dim">${esc(code)} · 官方 ${off.length} 类 / 注册辅证 ${cif.length} 类</span></div>
+      <div class="qcol"><div class="qcolh qcolh-off">GACC 官方准入</div>${offHtml}</div>
+      <div class="qcol" style="margin-top:6px"><div class="qcolh qcolh-cif">有在册注册（辅证）</div>${cifHtml}</div>
+      ${qBanNote(c.banned_animals)}
+      ${qSrcNote()}
+    </div>`;
   }).join('');
 }
 function matchCat(q) {
   q = (q || '').trim().toLowerCase();
   if (!q) return null;
   const out = Object.entries(qData.categories).filter(([k]) => k.toLowerCase().includes(q));
-  out.sort((a, b) => b[1].total - a[1].total);
+  out.sort((a, b) => ((b[1].official || []).length + (b[1].cifer || []).length) -
+                      ((a[1].official || []).length + (a[1].cifer || []).length));
   return out;
 }
 function onCatQuery() {
@@ -587,16 +620,25 @@ function onCatQuery() {
   if (sel === null) { box.innerHTML = '<div class="qempty">输入品类关键词</div>'; return; }
   if (!sel.length) { box.innerHTML = '<div class="qempty">无匹配品类</div>'; return; }
   box.innerHTML = sel.slice(0, 20).map(([cat, v]) => {
-    const list = Object.entries(v.countries);
-    const cname = code => (qData.countries[code] && qData.countries[code].name) || code;
-    const top = list.slice(0, 15).map(([code, n]) =>
-      `<div class="qi"><span>${esc(cname(code))} <span class="cd">${code}</span></span><span class="n">${n} 家</span></div>`).join('');
-    const more = list.length > 15
-      ? `<div class="qmore">… 共 ${list.length} 国准入 · 合计 ${v.total} 家有效注册</div>`
-      : `<div class="qmore">共 ${list.length} 国准入 · 合计 ${v.total} 家有效注册</div>`;
+    const off = v.official || [];
+    const cif = v.cifer || [];
+    const offHtml = off.length
+      ? off.map(x => `<div class="qi"><span>${esc(x)}</span><span class="n">官方准入</span></div>`).join('')
+      : '<div class="qi"><span class="cd">无官方准入记录</span></div>';
+    const cifHtml = cif.length
+      ? cif.map(x => `<div class="qi"><span>${esc(x.name)} <span class="cd">${esc(x.code)}</span></span><span class="n">${x.n} 家</span></div>`).join('')
+      : '<div class="qi"><span class="cd">无在册注册记录</span></div>';
+    const banHit = (qData.banned_detail || []).filter(b => off.includes(b.country));
+    const banLine = banHit.length
+      ? `<div class="qban">⚠ 本品类官方准入国中有 ${banHit.length} 国存在疫病动物禁令：${banHit.map(b => esc(b.country)).slice(0, 5).join('、')}${banHit.length > 5 ? '…' : ''}</div>`
+      : '';
     return `<div class="qres" style="margin-bottom:10px">
-      <div class="qh"><b>${esc(cat)}</b><span class="dim">${list.length} 国准入 · ${v.total} 家</span></div>
-      ${top}${more}</div>`;
+      <div class="qh"><b>${esc(cat)}</b><span class="dim">官方 ${off.length} 国 / 注册辅证 ${cif.length} 国${v.total != null ? ' · 官方口径 ' + v.total + ' 国' : ''}</span></div>
+      ${banLine}
+      <div class="qcol"><div class="qcolh qcolh-off">GACC 官方准入国家</div>${offHtml}</div>
+      <div class="qcol" style="margin-top:6px"><div class="qcolh qcolh-cif">有在册注册国家（辅证）</div>${cifHtml}</div>
+      ${qSrcNote()}
+    </div>`;
   }).join('');
 }
 

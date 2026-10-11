@@ -1,0 +1,23 @@
+{
+  "1": {
+    "url": "http://dzs.customs.gov.cn/dzs/2020-05/19/article_2025123119301257348.html",
+    "reachable": true,
+    "http": 200,
+    "attempts": 1,
+    "html_len": 39450
+  },
+  "2": {
+    "url": "http://jckspj.customs.gov.cn/spj/xxfw39/fhpgscyqjyctmydgjhdqshspml/index.html",
+    "reachable": true,
+    "http": 200,
+    "attempts": 2,
+    "html_len": 36084
+  },
+  "4": {
+    "url": "http://dzs.customs.gov.cn/dzs/2018-05/15/article_2025123119301285807.html",
+    "reachable": true,
+    "http": 200,
+    "attempts": 2,
+    "html_len": 40005
+  }
+}

@@ -23,6 +23,13 @@
 .qres .qi .n{font-weight:700;color:#1d7a4f}
 .qres .qi .cd{font-size:10.5px;color:var(--dim)}
 .qempty{padding:14px;font-size:12px;color:var(--dim);text-align:center}
+.qcol{padding:0}
+.qcolh{font-size:11px;font-weight:700;padding:5px 11px;border-radius:0}
+.qcolh-off{background:rgba(53,183,121,.14);color:#1d7a4f}
+.qcolh-cif{background:rgba(47,111,237,.10);color:#2657b8}
+.qban{padding:7px 11px;font-size:12px;color:#b03030;background:rgba(224,85,85,.08);border-left:3px solid #e05555;margin:6px 11px;border-radius:4px}
+.qsrc{padding:7px 11px;font-size:10.5px;color:var(--dim);border-top:1px dashed var(--line);line-height:1.6}
+.qsrc a{color:var(--acc)}
 .qmore{padding:7px 11px;font-size:11.5px;color:var(--dim);border-top:1px solid var(--line);background:#f7f9fc}*{box-sizing:border-box;margin:0;padding:0}
 body{background:var(--bg);color:var(--txt);font-family:'Segoe UI','Microsoft YaHei',sans-serif;font-size:13.5px}
 a{color:var(--acc);text-decoration:none}
@@ -330,22 +337,19 @@ footer{margin:18px;padding:14px 18px;font-size:11px;color:var(--dim);
         <div style="display:flex;gap:12px;flex-wrap:wrap;margin-bottom:10px">
           <div style="flex:1;min-width:260px">
             <div class="sg">① 查国家 · 该国准入哪些农产品食品</div>
-            <input id="qCountry" class="qin" list="qCountryList" placeholder="输入国家，如 巴西 / BRA / 泰国…">
-            <div id="qCountryHint" class="dim" style="margin-top:6px">支持中文名 / ISO3 / ISO2 码</div>
+            <input id="qCountry" class="qin" list="qCountryList" placeholder="输入国家，如 巴西 / BRA / 泰国 / 076…">
+            <div id="qCountryHint" class="dim" style="margin-top:6px">支持中文名 / 国家码（ISO 数字码）精确匹配 · 三源：官方准入 + 在册注册辅证 + 疫病禁止</div>
             <div id="qCountryResult" style="margin-top:10px"></div>
           </div>
           <div style="flex:1;min-width:260px">
             <div class="sg">② 查产品 · 该产品可从哪些国家进</div>
-            <input id="qCat" class="qin" list="qCatList" placeholder="输入品类，如 牛肉 / 水产品 / 茶叶…">
-            <div id="qCatHint" class="dim" style="margin-top:6px">支持 75 个 CIFER 品类关键词</div>
+            <input id="qCat" class="qin" list="qCatList" placeholder="输入品类，如 新鲜水果 / 牛肉 / 水产品 / 茶叶…">
+            <div id="qCatHint" class="dim" style="margin-top:6px">支持品类关键词模糊匹配（66 个品类）</div>
             <div id="qCatResult" style="margin-top:10px"></div>
           </div>
         </div>
-        <div style="display:flex;gap:20px;flex-wrap:wrap;font-size:11.5px;color:var(--dim)">
-          <span>覆盖 <b id="qStatCountries" style="color:var(--txt)">--</b> 国</span>
-          <span><b id="qStatCats" style="color:var(--txt)">--</b> 品类</span>
-          <span>有效注册 <b id="qStatActive" style="color:var(--txt)">--</b> 条</span>
-          <span>口径：CIFER 在册 <b style="color:var(--txt)">有效</b> 注册 &gt; 0 = 该国该品类准入（政策资格，非实际贸易量）</span>
+        <div id="qStats" style="display:flex;gap:20px;flex-wrap:wrap;font-size:11.5px;color:var(--dim)">
+          <span style="color:var(--dim)">三源口径加载中…</span>
         </div>
       </div>
       <datalist id="qCountryList"></datalist>
