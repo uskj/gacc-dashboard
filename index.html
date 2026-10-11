@@ -11,7 +11,19 @@
   --focus:#2f6fed; --core-bg:#eef1f7; --core-tx:#3a4358; --nav-bg:#131a2a;
   --nav-tx:#c6cede;
 }
-*{box-sizing:border-box;margin:0;padding:0}
+.qin{width:100%;padding:9px 11px;border:1px solid var(--line);border-radius:8px;
+  font-size:13px;background:#fff;outline:none}
+.qin:focus{border-color:var(--acc)}
+.qres{border:1px solid var(--line);border-radius:10px;max-height:330px;overflow:auto;background:#f8fafc}
+.qres .qh{position:sticky;top:0;background:#f7f9fc;padding:8px 11px;font-size:12px;font-weight:600;
+  border-bottom:1px solid var(--line);display:flex;justify-content:space-between;gap:8px;flex-wrap:wrap}
+.qres .qi{display:flex;justify-content:space-between;gap:10px;padding:6px 11px;font-size:12px;
+  border-bottom:1px solid #eef1f6}
+.qres .qi:last-child{border-bottom:none}
+.qres .qi .n{font-weight:700;color:#1d7a4f}
+.qres .qi .cd{font-size:10.5px;color:var(--dim)}
+.qempty{padding:14px;font-size:12px;color:var(--dim);text-align:center}
+.qmore{padding:7px 11px;font-size:11.5px;color:var(--dim);border-top:1px solid var(--line);background:#f7f9fc}*{box-sizing:border-box;margin:0;padding:0}
 body{background:var(--bg);color:var(--txt);font-family:'Segoe UI','Microsoft YaHei',sans-serif;font-size:13.5px}
 a{color:var(--acc);text-decoration:none}
 .app{display:grid;grid-template-columns:250px 1fr;min-height:100vh}
@@ -201,7 +213,8 @@ footer{margin:18px;padding:14px 18px;font-size:11px;color:var(--dim);
       <div class="mg">总览</div>
       <div class="mi" data-go="top"><span class="ic">◧</span>仪表盘</div>
       <div class="mi" data-go="alertCard"><span class="ic">◎</span>政策雷达</div>
-      <div class="mi on" data-go="mxCard"><span class="ic">▦</span>准入情报矩阵</div>
+      <div class="mi" data-go="qCard"><span class="ic">▦</span>准入双向查询</div>
+      <div class="mi" data-go="mxCard"><span class="ic">▦</span>准入情报矩阵</div>
       <div class="mi" data-go="newsCard"><span class="ic">⚙</span>工厂动态</div>
 
       <div class="mg">市场情报</div>
@@ -303,6 +316,40 @@ footer{margin:18px;padding:14px 18px;font-size:11px;color:var(--dim);
         </div>
         <div class="mid">已抓取 <b id="entDirCov">--</b> 国 / <b id="entDirAll">--</b> 国 · 记录 <b id="entDirCount">--</b> · 更新 <span id="entDirDate">--</span></div>
       </div>
+    </div>
+
+    <!-- 准入双向查询 (国→品类 / 品类→国, CIFER 有效注册口径) -->
+    <div class="mcard" id="qCard" style="margin-top:18px">
+      <div class="mhead">
+        <div><h2>准入双向查询 · 哪国进哪品</h2>
+          <div class="sub">输入国家 → 看该国准入哪些农产品食品；输入产品 → 看该产品可从哪些国家进口。口径：CIFER 在册有效注册 &gt; 0 = 准入 · 数据源 <code>data/query.json</code></div>
+        </div>
+        <div class="acts"><button class="btn" onclick="renderQuery()">↻ 重载</button></div>
+      </div>
+      <div id="qBody" style="padding:14px 18px;font-size:13px">
+        <div style="display:flex;gap:12px;flex-wrap:wrap;margin-bottom:10px">
+          <div style="flex:1;min-width:260px">
+            <div class="sg">① 查国家 · 该国准入哪些农产品食品</div>
+            <input id="qCountry" class="qin" list="qCountryList" placeholder="输入国家，如 巴西 / BRA / 泰国…">
+            <div id="qCountryHint" class="dim" style="margin-top:6px">支持中文名 / ISO3 / ISO2 码</div>
+            <div id="qCountryResult" style="margin-top:10px"></div>
+          </div>
+          <div style="flex:1;min-width:260px">
+            <div class="sg">② 查产品 · 该产品可从哪些国家进</div>
+            <input id="qCat" class="qin" list="qCatList" placeholder="输入品类，如 牛肉 / 水产品 / 茶叶…">
+            <div id="qCatHint" class="dim" style="margin-top:6px">支持 75 个 CIFER 品类关键词</div>
+            <div id="qCatResult" style="margin-top:10px"></div>
+          </div>
+        </div>
+        <div style="display:flex;gap:20px;flex-wrap:wrap;font-size:11.5px;color:var(--dim)">
+          <span>覆盖 <b id="qStatCountries" style="color:var(--txt)">--</b> 国</span>
+          <span><b id="qStatCats" style="color:var(--txt)">--</b> 品类</span>
+          <span>有效注册 <b id="qStatActive" style="color:var(--txt)">--</b> 条</span>
+          <span>口径：CIFER 在册 <b style="color:var(--txt)">有效</b> 注册 &gt; 0 = 该国该品类准入（政策资格，非实际贸易量）</span>
+        </div>
+      </div>
+      <datalist id="qCountryList"></datalist>
+      <datalist id="qCatList"></datalist>
     </div>
 
     <!-- 重点国情报总览 副表 (双源对照, 默认折叠) -->

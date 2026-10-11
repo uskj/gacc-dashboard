@@ -514,7 +514,91 @@ function showCiferDetail(c3, cat, n) {
   document.getElementById('mask').classList.add('show');
 }
 
-load(); startAuto(); renderCifer();
+load(); startAuto(); renderCifer(); renderQuery();
+
+/* ===== 准入双向查询: 国→品类 / 品类→国 (CIFER 有效注册口径) ===== */
+let qData = null;
+async function renderQuery() {
+  try {
+    const r = await fetch(API_BASE + '/query.json?t=' + Date.now(), { cache: 'no-store' });
+    qData = await r.json();
+  } catch { qData = null; }
+  if (!qData) return;
+  document.getElementById('qStatCountries').textContent = qData._meta.total_countries;
+  document.getElementById('qStatCats').textContent = qData._meta.total_categories;
+  document.getElementById('qStatActive').textContent = qData._meta.total_active;
+  // datalist: 国家 (中文名 + ISO3 + ISO2), 品类
+  const cl = document.getElementById('qCountryList');
+  const cnOpts = Object.entries(qData.countries).map(([code, c]) =>
+    `<option value="${esc(c.name || code)}">${esc(code)} · ${c.name || ''}</option>`).join('');
+  cl.innerHTML = cnOpts + Object.entries(qData.countries).map(([code, c]) =>
+    `<option value="${code}">${c.name || ''} (${code})</option>`).join('');
+  document.getElementById('qCatList').innerHTML =
+    Object.keys(qData.categories).map(k => `<option value="${esc(k)}">${qData.categories[k].total} 家 / ${Object.keys(qData.categories[k].countries).length} 国</option>`).join('');
+  bindQueryEvents();
+}
+let _qBound = false;
+function bindQueryEvents() {
+  if (_qBound) return; _qBound = true;
+  document.getElementById('qCountry').addEventListener('input', onCountryQuery);
+  document.getElementById('qCat').addEventListener('input', onCatQuery);
+}
+function matchCountry(q) {
+  q = (q || '').trim().toLowerCase();
+  if (!q) return null;
+  const out = [];
+  for (const [code, c] of Object.entries(qData.countries)) {
+    const name = (c.name || '').toLowerCase();
+    if (name.includes(q) || code.toLowerCase().startsWith(q) ||
+        (code.slice(0, 2).toLowerCase() === q.slice(0, 2) && q.length >= 2)) out.push([code, c]);
+  }
+  return out;
+}
+function onCountryQuery() {
+  const box = document.getElementById('qCountryResult');
+  const sel = matchCountry(document.getElementById('qCountry').value);
+  if (sel === null) { box.innerHTML = '<div class="qempty">输入国家名 / 国家代码</div>'; return; }
+  if (!sel.length) { box.innerHTML = '<div class="qempty">无匹配国家</div>'; return; }
+  if (sel.length > 30) { sel.length = 30; }
+  box.innerHTML = sel.map(([code, c]) => {
+    const cats = c.cats || {};
+    const n = Object.keys(cats).length;
+    const total = Object.values(cats).reduce((a, b) => a + b, 0);
+    const top = Object.entries(cats).slice(0, 12).map(([k, v]) =>
+      `<div class="qi"><span>${esc(k)}</span><span class="n">${v} 家</span></div>`).join('');
+    const more = n > 12 ? `<div class="qmore">… 共 ${n} 个品类准入，合计 ${total} 家有效注册</div>` :
+      (n > 0 ? `<div class="qmore">共 ${n} 个品类准入 · 合计 ${total} 家有效注册</div>` : '');
+    const head = `<div class="qh"><b>${esc(c.name || code)}</b><span class="dim">${code} · ${n} 个品类准入</span></div>`;
+    return n
+      ? `<div class="qres" style="margin-bottom:10px">${head}${top}${more}</div>`
+      : `<div class="qres" style="margin-bottom:10px"><div class="qempty">${esc(c.name || code)} 无有效注册品类</div></div>`;
+  }).join('');
+}
+function matchCat(q) {
+  q = (q || '').trim().toLowerCase();
+  if (!q) return null;
+  const out = Object.entries(qData.categories).filter(([k]) => k.toLowerCase().includes(q));
+  out.sort((a, b) => b[1].total - a[1].total);
+  return out;
+}
+function onCatQuery() {
+  const box = document.getElementById('qCatResult');
+  const sel = matchCat(document.getElementById('qCat').value);
+  if (sel === null) { box.innerHTML = '<div class="qempty">输入品类关键词</div>'; return; }
+  if (!sel.length) { box.innerHTML = '<div class="qempty">无匹配品类</div>'; return; }
+  box.innerHTML = sel.slice(0, 20).map(([cat, v]) => {
+    const list = Object.entries(v.countries);
+    const cname = code => (qData.countries[code] && qData.countries[code].name) || code;
+    const top = list.slice(0, 15).map(([code, n]) =>
+      `<div class="qi"><span>${esc(cname(code))} <span class="cd">${code}</span></span><span class="n">${n} 家</span></div>`).join('');
+    const more = list.length > 15
+      ? `<div class="qmore">… 共 ${list.length} 国准入 · 合计 ${v.total} 家有效注册</div>`
+      : `<div class="qmore">共 ${list.length} 国准入 · 合计 ${v.total} 家有效注册</div>`;
+    return `<div class="qres" style="margin-bottom:10px">
+      <div class="qh"><b>${esc(cat)}</b><span class="dim">${list.length} 国准入 · ${v.total} 家</span></div>
+      ${top}${more}</div>`;
+  }).join('');
+}
 
 /* ===== 境外企业准入名录 (CIFER 全量注册记录, 按国家) ===== */
 let entDirData = null;
