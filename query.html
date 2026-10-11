@@ -1,0 +1,314 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>输华农产品准入查询 · 双向检索</title>
+<style>
+:root{
+  --bg:#eef1f5; --card:#fff; --line:#e4e8ef; --txt:#2b3445; --dim:#7a8699;
+  --acc:#2f6fed; --ok:#35b779; --part:#f5a524; --pause:#e05555;
+  --cif:#2657b8; --ban:#b03030;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:var(--bg);color:var(--txt);font-family:'Segoe UI','Microsoft YaHei',sans-serif;font-size:13.5px;line-height:1.5}
+a{color:var(--acc);text-decoration:none}
+a:hover{text-decoration:underline}
+.wrap{max-width:1180px;margin:0 auto;padding:22px 18px 60px}
+.head{display:flex;align-items:center;gap:14px;margin-bottom:6px;flex-wrap:wrap}
+.head .hex{width:40px;height:40px;background:linear-gradient(135deg,#3b82f6,#22d3ee);
+  clip-path:polygon(25% 0,75% 0,100% 50%,75% 100%,25% 100%,0 50%);flex:0 0 auto}
+.head h1{font-size:19px;font-weight:700}
+.head .sub{font-size:12px;color:var(--dim)}
+.meta{font-size:11.5px;color:var(--dim);margin:8px 0 18px;padding:9px 12px;background:#f7f9fc;
+  border:1px solid var(--line);border-radius:8px;line-height:1.7}
+.meta a{margin-right:10px}
+.grid{display:grid;grid-template-columns:1fr 1fr;gap:18px}
+@media(max-width:900px){.grid{grid-template-columns:1fr}}
+.card{background:var(--card);border:1px solid var(--line);border-radius:12px;overflow:hidden;
+  box-shadow:0 1px 3px rgba(20,30,60,.04)}
+.card h2{font-size:14px;font-weight:700;padding:13px 15px;border-bottom:1px solid var(--line);
+  display:flex;align-items:center;gap:8px}
+.card h2 .tag{font-size:10.5px;font-weight:600;color:#fff;background:var(--acc);
+  padding:2px 7px;border-radius:20px}
+.card h2 .tag.b{background:var(--ok)}
+.body{padding:14px 15px}
+.inwrap{position:relative}
+input.qi{width:100%;padding:11px 12px;border:1.5px solid var(--line);border-radius:9px;
+  font-size:14px;outline:none;background:#fff;transition:.15s}
+input.qi:focus{border-color:var(--acc);box-shadow:0 0 0 3px rgba(47,111,237,.12)}
+.ac{position:absolute;left:0;right:0;top:calc(100% + 4px);background:#fff;border:1px solid var(--line);
+  border-radius:9px;box-shadow:0 8px 24px rgba(20,30,60,.14);z-index:30;max-height:280px;overflow:auto;display:none}
+.ac.on{display:block}
+.ac div{padding:8px 12px;font-size:13px;cursor:pointer;border-bottom:1px solid #f1f4f8}
+.ac div:last-child{border-bottom:none}
+.ac div:hover,.ac div.hl{background:#eef3fe}
+.ac .em{color:var(--acc);font-weight:700}
+.hint{font-size:11.5px;color:var(--dim);margin-top:7px}
+.res{margin-top:14px;border:1px solid var(--line);border-radius:10px;overflow:hidden;background:#f8fafc}
+.res .rh{padding:10px 13px;font-size:13px;font-weight:600;background:#f7f9fc;border-bottom:1px solid var(--line);
+  display:flex;justify-content:space-between;gap:8px;flex-wrap:wrap}
+.res .rh .cnt{font-size:11.5px;color:var(--dim);font-weight:400}
+.sec{padding:10px 13px;border-bottom:1px solid #eef1f6}
+.sec:last-child{border-bottom:none}
+.sec .st{font-size:11px;font-weight:700;padding:3px 9px;border-radius:5px;display:inline-block;margin-bottom:8px}
+.st-off{background:rgba(53,183,121,.15);color:#1d7a4f}
+.st-cif{background:rgba(47,111,237,.10);color:var(--cif)}
+.st-ban{background:rgba(224,85,85,.10);color:var(--ban)}
+.st-blank{background:#eef1f6;color:var(--dim)}
+.chips{display:flex;flex-wrap:wrap;gap:7px}
+.chip{font-size:12px;padding:5px 11px;border-radius:20px;background:#fff;border:1px solid var(--line);
+  cursor:default;display:inline-flex;align-items:center;gap:6px}
+.chip.ok{border-color:#bfe6d3;background:#f0faf5;color:#1d7a4f;font-weight:600}
+.chip.warn{border-color:#f2d89a;background:#fff8ea;color:#a8720a;font-weight:600}
+.chip.cif{border-color:#cddcf7;background:#f2f6fe;color:var(--cif)}
+.chip .m{font-size:10.5px;color:var(--dim);font-weight:400}
+.ban-item{padding:8px 11px;font-size:12.5px;color:var(--ban);background:rgba(224,85,85,.07);
+  border-left:3px solid var(--pause);border-radius:5px;margin-bottom:6px}
+table.cmp{width:100%;border-collapse:collapse;font-size:12px}
+table.cmp th,table.cmp td{padding:6px 8px;border-bottom:1px solid #eef1f6;text-align:left;vertical-align:top}
+table.cmp th{font-size:10.5px;color:var(--dim);font-weight:600;background:#f7f9fc;position:sticky;top:0}
+table.cmp tr:hover td{background:#fbfcfe}
+table.cmp td.rn{font-family:Consolas,monospace;font-size:11px;color:var(--cif);white-space:nowrap}
+.badge{font-size:10px;padding:1px 6px;border-radius:10px;background:#eef1f6;color:var(--dim)}
+.badge.on{background:rgba(53,183,121,.15);color:#1d7a4f}
+.badge.off{background:#f0f0f0;color:#aaa}
+.collapse{padding:8px 13px;font-size:11.5px;color:var(--dim);background:#f7f9fc;border-top:1px solid var(--line);
+  cursor:pointer;user-select:none;text-align:center}
+.collapse:hover{background:#eef3fe;color:var(--acc)}
+.empty{padding:16px;font-size:12.5px;color:var(--dim);text-align:center}
+.legend{font-size:11px;color:var(--dim);margin-top:14px;line-height:1.9}
+.legend b{color:var(--txt)}
+.foot{margin-top:24px;font-size:11px;color:var(--dim);text-align:center}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="head">
+    <div class="hex"></div>
+    <div>
+      <h1>输华农产品准入查询</h1>
+      <div class="sub">双向检索 · GACC 官方准入 × chinaport 在册注册 × 疫病禁止</div>
+    </div>
+  </div>
+  <div class="meta" id="metaBar">数据加载中…</div>
+
+  <div class="grid">
+    <!-- 查询1: 国家 -> 产品 -->
+    <div class="card">
+      <h2><span class="tag">查询 ①</span> 指定国家 → 准入哪些产品</h2>
+      <div class="body">
+        <div class="inwrap">
+          <input class="qi" id="qCountry" placeholder="输入国家名，如：墨西哥 / 巴布亚新几内亚" autocomplete="off">
+          <div class="ac" id="acCountry"></div>
+        </div>
+        <div class="hint">支持中文国名模糊匹配 · 共 <span id="nCountry">0</span> 个有数据的国家</div>
+        <div id="resCountry"></div>
+      </div>
+    </div>
+
+    <!-- 查询2: 产品 -> 国家 -->
+    <div class="card">
+      <h2><span class="tag b">查询 ②</span> 指定产品 → 可从哪些国家进口</h2>
+      <div class="body">
+        <div class="inwrap">
+          <input class="qi" id="qCat" placeholder="输入产品/品类，如：香蕉 / 芒果 / 可可豆 / 大豆" autocomplete="off">
+          <div class="ac" id="acCat"></div>
+        </div>
+        <div class="hint">支持具体产品名或品类模糊匹配 · 覆盖 <span id="nCat">0</span> 个品类 + <span id="nProd">0</span> 个产品</div>
+        <div id="resCat"></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="legend">
+    <b>图例</b>：<span class="chip ok">绿</span> GACC 官方准入 &nbsp;
+    <span class="chip warn">黄</span> 准入但受限（暂停/地域/部分产品） &nbsp;
+    <span class="chip cif">蓝</span> chinaport 在册注册企业 &nbsp;
+    <span class="chip" style="border-color:#f0c2c2;color:var(--ban)">红</span> 疫病禁止输入
+    <br>数据来源：GACC 海关总署官网准入名单 · chinaport 进境动植物境外企业检疫注册登记系统 · GACC 禁止输入动物一览表
+  </div>
+  <div class="foot" id="foot"></div>
+</div>
+
+<script>
+let DATA=null, CN=[], CT=[], PD=[];
+const $=id=>document.getElementById(id);
+const esc=s=>String(s==null?'':s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+
+fetch('data/querydata.json').then(r=>r.json()).then(d=>{
+  DATA=d;
+  CN=Object.values(d.countries).map(c=>c.name);
+  CT=Object.keys(d.categories);
+  PD=Object.keys(d.products||{});
+  $('nCountry').textContent=CN.length;
+  $('nCat').textContent=CT.length;
+  $('nProd').textContent=PD.length;
+  const m=d._meta;
+  $('metaBar').innerHTML='数据基准 '+m.generated+' ｜ 共 '+m.n_countries+' 国 × '+m.n_categories+' 品类。来源：'
+    +Object.values(m.sources).map(esc).join(' ｜ ')
+    +'<br>官方链接：'+m.links.map((u,i)=>'<a href="'+u+'" target="_blank" rel="noopener">来源'+(i+1)+'</a>').join(' ');
+  $('foot').textContent='STGACC 准入情报矩阵 · '+m.generated+' · 仅供内部参考';
+}).catch(e=>{$('metaBar').textContent='数据加载失败：'+e;});
+
+/* ---------- 模糊匹配 ---------- */
+function fuzzy(q,list){
+  if(!q) return [];
+  q=q.toLowerCase();
+  const out=[];
+  for(const x of list){
+    const lx=x.toLowerCase();
+    let idx=lx.indexOf(q);
+    let score = idx===0?0 : idx>0?1 : 9;
+    if(idx<0){ // 逐字包含
+      let i=0,ok=true; for(const ch of q){i=lx.indexOf(ch,i); if(i<0){ok=false;break;} i++;}
+      score = ok?5:99;
+    }
+    if(score<9) out.push([x,score]);
+  }
+  out.sort((a,b)=>a[1]-b[1]||a[0].localeCompare(b[0]));
+  return out.map(x=>x[0]);
+}
+
+/* ---------- 自动补全 ---------- */
+function bindAC(inp,acEl,getList,onPick){
+  inp.addEventListener('input',()=>{
+    const v=inp.value.trim();
+    const list=fuzzy(v,getList()).slice(0,20);
+    if(!v||!list.length){acEl.classList.remove('on');acEl.innerHTML='';return;}
+    acEl.innerHTML=list.map((x,i)=>'<div data-i="'+i+'">'+esc(x)+'</div>').join('');
+    acEl.classList.add('on');
+    acEl.dataset.list=JSON.stringify(list);
+  });
+  acEl.addEventListener('mousedown',ev=>{
+    const d=ev.target.closest('div[data-i]'); if(!d) return;
+    ev.preventDefault();
+    const list=JSON.parse(acEl.dataset.list||'[]');
+    const val=list[+d.dataset.i];
+    inp.value=val; acEl.classList.remove('on'); acEl.innerHTML='';
+    onPick(val);
+  });
+  inp.addEventListener('blur',()=>setTimeout(()=>acEl.classList.remove('on'),120));
+  inp.addEventListener('keydown',ev=>{
+    if(ev.key==='Enter'){const l=fuzzy(inp.value.trim(),getList()); if(l.length) onPick(l[0]);}
+  });
+}
+
+/* ================= 查询 ① 国家 -> 产品 ================= */
+bindAC($('qCountry'),$('acCountry'),()=>CN,renderCountry);
+
+function renderCountry(name){
+  const c=Object.values(DATA.countries).find(x=>x.name===name);
+  const box=$('resCountry');
+  if(!c){box.innerHTML='<div class="empty">未找到国家：'+esc(name)+'</div>';return;}
+  let h='<div class="res"><div class="rh"><span>🇺🇳 '+esc(c.name)+'</span>'
+    +'<span class="cnt">'+(c.num?('国码 '+c.num):'')+'</span></div>';
+
+  // 官方准入
+  h+='<div class="sec"><span class="st st-off">GACC 官方准入</span>';
+  const oc=Object.entries(c.official||{});
+  if(oc.length){
+    h+='<div class="chips">'+oc.map(([cat,st])=>{
+      return st==='准入'
+        ? '<span class="chip ok">'+esc(cat)+'</span>'
+        : '<span class="chip warn" title="'+esc(st)+'">⚠ '+esc(cat)+' <span class="m">'+esc(st)+'</span></span>';
+    }).join('')+'</div>';
+  } else h+='<div class="hint">无官方准入品类</div>';
+  h+='</div>';
+
+  // chinaport 在册注册
+  h+='<div class="sec"><span class="st st-cif">chinaport 在册注册</span>';
+  const cr=Object.entries(c.cifer_reg||{});
+  if(cr.length){
+    h+='<div class="chips">'+cr.map(([sub,n])=>'<span class="chip cif">'+esc(sub)+' <span class="m">'+n+' 家</span></span>').join('')+'</div>';
+  } else h+='<div class="hint">无在册注册企业</div>';
+  h+='</div>';
+
+  // 疫病禁止
+  if((c.banned||[]).length){
+    h+='<div class="sec"><span class="st st-ban">疫病禁止输入</span>'
+      +c.banned.map(b=>'<div class="ban-item">🚫 '+esc(b)+'</div>').join('')+'</div>';
+  }
+
+  // 空白国
+  if(c.blank){
+    h+='<div class="sec"><span class="st st-blank">空白国</span>'
+      +'<div class="hint">无官方准入、无在册注册企业、也不在疫病禁输名单 —— 当前无任何农产品食品可输华。需先走 GACC 准入申请。</div></div>';
+  }
+
+  // 企业清单
+  if((c.enterprises||[]).length){
+    const es=c.enterprises;
+    const show=es.slice(0,60);
+    h+='<div class="sec"><span class="st st-cif">可联系企业 ('+es.length+')</span>'
+      +'<div style="max-height:300px;overflow:auto"><table class="cmp"><thead><tr>'
+      +'<th>企业</th><th>品类/产品</th><th>注册号</th><th>状态</th></tr></thead><tbody>'
+      +show.map(e=>'<tr><td>'+esc(e.name||'—')+'</td>'
+        +'<td>'+esc([e.sub,e.prod].filter(Boolean).join(' · ')||e.cat||'')+'</td>'
+        +'<td class="rn">'+esc(e.regNo||'')+'</td>'
+        +'<td><span class="badge '+(e.src==='CIFER'?(e.type==='有效'?'on':''):'')+'">'+esc(e.src==='CIFER'?('CIFER·'+e.type):e.type||'在册')+'</span></td></tr>').join('')
+      +'</tbody></table></div>'
+      +(es.length>60?'<div class="hint">仅显示前 60 家，共 '+es.length+' 家</div>':'')
+      +'</div>';
+  }
+
+  h+='</div>';
+  box.innerHTML=h;
+}
+
+/* ================= 查询 ② 产品 -> 国家 ================= */
+bindAC($('qCat'),$('acCat'),()=>CT.concat(PD),renderCat);
+
+function renderCat(name){
+  const box=$('resCat');
+  const nameL=name.toLowerCase();
+  // 命中的产品 (精确优先, 其次包含)
+  let prods=PD.filter(p=>p===name);
+  if(!prods.length) prods=PD.filter(p=>p.includes(name)).slice(0,8);
+  // 命中的品类
+  let cats=CT.filter(c=>c===name);
+  if(!cats.length) cats=CT.filter(c=>c.includes(name)||name.includes(c)).slice(0,4);
+
+  if(!prods.length && !cats.length){
+    box.innerHTML='<div class="empty">未找到产品/品类：'+esc(name)+'</div>';return;
+  }
+  let h='<div class="res">';
+
+  // --- 产品级结果 (官方准入国) ---
+  prods.forEach((p,pi)=>{
+    const cs=DATA.products[p]||[];
+    if(pi===0){
+      h+='<div class="rh"><span>📦 产品「'+esc(p)+'」</span><span class="cnt">官方准入 '+cs.length+' 国</span></div>';
+    } else {
+      h+='<div class="rh" style="border-top:1px solid var(--line)"><span>📦 产品「'+esc(p)+'」</span><span class="cnt">'+cs.length+' 国</span></div>';
+    }
+    h+='<div class="sec"><span class="st st-off">GACC 官方准入国家</span>';
+    h+=cs.length?('<div class="chips">'+cs.map(cn=>'<span class="chip ok">'+esc(cn)+'</span>').join('')+'</div>'):'<div class="hint">无官方准入记录</div>';
+    h+='</div>';
+  });
+
+  // --- 品类级结果 ---
+  cats.forEach(k=>{
+    const cat=DATA.categories[k];
+    const oc=(cat.status||{});
+    h+='<div class="rh"'+(prods.length?' style="border-top:2px solid var(--line)"':'')+'><span>📂 品类「'+esc(k)+'」</span><span class="cnt">'+(cat.src==='official'?'官方准入品类':'chinaport 注册品类')+'</span></div>';
+    h+='<div class="sec"><span class="st st-off">官方准入国家 ('+(cat.official||[]).length+')</span>';
+    if((cat.official||[]).length){
+      h+='<div class="chips">'+cat.official.map(cn=>{const st=oc[cn]||'准入';
+        return st==='准入'?'<span class="chip ok">'+esc(cn)+'</span>':'<span class="chip warn" title="'+esc(st)+'">⚠ '+esc(cn)+' <span class="m">'+esc(st)+'</span></span>';
+      }).join('')+'</div>';
+    } else h+='<div class="hint">无官方准入国家</div>';
+    h+='</div>';
+    const cf=Object.entries(cat.cifer||{});
+    if(cf.length){
+      h+='<div class="sec"><span class="st st-cif">chinaport 有注册企业国家 ('+cf.length+')</span>'
+        +'<div class="chips">'+cf.map(([num,n])=>'<span class="chip cif">'+esc(DATA.cc_map[num]||num)+' <span class="m">'+n+'家</span></span>').join('')+'</div></div>';
+    }
+  });
+
+  h+='</div>';
+  box.innerHTML=h;
+}
+</script>
+</body>
+</html>
