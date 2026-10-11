@@ -332,7 +332,8 @@ function renderCat(name){
   cats.forEach(k=>{
     const cat=DATA.categories[k];
     const oc=(cat.status||{});
-    h+='<div class="rh"'+(prods.length?' style="border-top:2px solid var(--line)"':'')+'><span>📂 品类「'+esc(k)+'」</span><span class="cnt">'+(cat.src==='official'?'官方准入品类':'chinaport 注册品类')+'</span></div>';
+    const srcName = cat.src==='official'?'官方准入品类':(cat.src==='cifer'?'CIFER 境外食品企业注册品类':'chinaport 注册品类');
+    h+='<div class="rh"'+(prods.length?' style="border-top:2px solid var(--line)"':'')+'><span>📂 品类「'+esc(k)+'」</span><span class="cnt">'+srcName+'</span></div>';
     h+='<div class="sec"><span class="st st-off">官方准入国家 ('+(cat.official||[]).length+')</span>';
     if((cat.official||[]).length){
       h+='<div class="chips">'+cat.official.map(cn=>{const st=oc[cn]||'准入';
@@ -342,7 +343,7 @@ function renderCat(name){
     h+='</div>';
     const cf=Object.entries(cat.cifer||{});
     if(cf.length){
-      h+='<div class="sec"><span class="st st-cif">chinaport 有注册企业国家 ('+cf.length+')</span>'
+      h+='<div class="sec"><span class="st st-cif">'+(cat.src==='cifer'?'CIFER 注册企业国家 ('+cf.length+')':'chinaport 有注册企业国家 ('+cf.length+')')+'</span>'
         +'<div class="chips">'+cf.map(([num,n])=>'<span class="chip cif">'+esc(DATA.cc_map[num]||num)+' <span class="m">'+n+'家</span></span>').join('')+'</div></div>';
     }
   });
