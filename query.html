@@ -73,6 +73,14 @@ table.cmp td.rn{font-family:Consolas,monospace;font-size:11px;color:var(--cif);w
 .badge{font-size:10px;padding:1px 6px;border-radius:10px;background:#eef1f6;color:var(--dim)}
 .badge.on{background:rgba(53,183,121,.15);color:#1d7a4f}
 .badge.off{background:#f0f0f0;color:#aaa}
+.eg{border:1px solid var(--line);border-radius:8px;margin-bottom:8px;overflow:hidden;background:#fff}
+.eg-h{display:flex;align-items:center;gap:10px;padding:9px 12px;cursor:pointer;background:#f7f9fc;font-size:12.5px;font-weight:600}
+.eg-h:hover{background:#eef3fe}
+.eg-h .eg-n{margin-left:auto;font-size:11px;color:var(--dim);font-weight:400}
+.eg-h .eg-caret{color:var(--dim);transition:transform .15s;display:inline-block}
+.eg[data-open="1"] .eg-h .eg-caret{transform:rotate(90deg)}
+.eg-b{border-top:1px solid var(--line)}
+.tw{max-height:360px;overflow:auto}
 .collapse{padding:8px 13px;font-size:11.5px;color:var(--dim);background:#f7f9fc;border-top:1px solid var(--line);
   cursor:pointer;user-select:none;text-align:center}
 .collapse:hover{background:#eef3fe;color:var(--acc)}
@@ -80,6 +88,25 @@ table.cmp td.rn{font-family:Consolas,monospace;font-size:11px;color:var(--cif);w
 .legend{font-size:11px;color:var(--dim);margin-top:14px;line-height:1.9}
 .legend b{color:var(--txt)}
 .foot{margin-top:24px;font-size:11px;color:var(--dim);text-align:center}
+@media(max-width:640px){
+  .wrap{padding:14px 10px 44px}
+  .head h1{font-size:17px}
+  .head .hex{width:34px;height:34px}
+  .grid{gap:12px}
+  .body{padding:12px}
+  .meta{font-size:11px;padding:8px 10px}
+  table.cmp{font-size:12px}
+  table.cmp thead{display:none}
+  table.cmp,table.cmp tbody,table.cmp tr,table.cmp td{display:block;width:100%}
+  table.cmp tr{padding:8px 10px;border-bottom:1px solid var(--line)}
+  table.cmp tr:hover td{background:transparent}
+  table.cmp td{border:none;padding:2px 0;display:flex;gap:8px;align-items:baseline}
+  table.cmp td::before{content:attr(data-label);flex:0 0 52px;color:var(--dim);font-weight:600}
+  table.cmp td.rn{white-space:normal;word-break:break-all}
+  .tw{max-height:64vh}
+  .chips{gap:6px}
+  .chip{font-size:11.5px;padding:4px 9px}
+}
 </style>
 </head>
 <body>
@@ -236,24 +263,47 @@ function renderCountry(name){
       +'<div class="hint">无官方准入、无在册注册企业、也不在疫病禁输名单 —— 当前无任何农产品食品可输华。需先走 GACC 准入申请。</div></div>';
   }
 
-  // 企业清单
+  // 企业清单（按品类分组，全部可查）
   if((c.enterprises||[]).length){
     const es=c.enterprises;
-    const show=es.slice(0,60);
+    const groups={};
+    es.forEach(e=>{const k=e.sub||e.cat||'其他';(groups[k]=groups[k]||[]).push(e);});
+    const gkeys=Object.keys(groups).sort((a,b)=>groups[b].length-groups[a].length||a.localeCompare(b,'zh'));
     h+='<div class="sec"><span class="st st-cif">可联系企业 ('+es.length+')</span>'
-      +'<div style="max-height:300px;overflow:auto"><table class="cmp"><thead><tr>'
-      +'<th>企业</th><th>品类/产品</th><th>注册号</th><th>状态</th></tr></thead><tbody>'
-      +show.map(e=>'<tr><td>'+esc(e.name||'—')+'</td>'
-        +'<td>'+esc([e.sub,e.prod].filter(Boolean).join(' · ')||e.cat||'')+'</td>'
-        +'<td class="rn">'+esc(e.regNo||'')+'</td>'
-        +'<td><span class="badge '+(e.src==='CIFER'?(e.type==='有效'?'on':''):'')+'">'+esc(e.src==='CIFER'?('CIFER·'+e.type):e.type||'在册')+'</span></td></tr>').join('')
-      +'</tbody></table></div>'
-      +(es.length>60?'<div class="hint">仅显示前 60 家，共 '+es.length+' 家</div>':'')
-      +'</div>';
+      +'<div class="hint">按品类分组 · 点分类展开/收起 · <a href="javascript:;" onclick="egAll(1)">全部展开</a> / <a href="javascript:;" onclick="egAll(0)">全部收起</a></div>';
+    gkeys.forEach((k,i)=>{
+      const list=groups[k];
+      h+='<div class="eg" data-open="'+(i===0?1:0)+'">'
+        +'<div class="eg-h" onclick="egToggle(this)"><span>'+esc(k)+'</span>'
+        +'<span class="eg-n">'+list.length+' 家</span><span class="eg-caret">▸</span></div>'
+        +'<div class="eg-b"'+(i===0?'':' style="display:none"')+'>'
+        +'<div class="tw"><table class="cmp"><thead><tr>'
+        +'<th>企业</th><th>产品</th><th>注册号</th><th>状态</th></tr></thead><tbody>'
+        +list.map(e=>'<tr><td data-label="企业">'+esc(e.name||'—')+'</td>'
+          +'<td data-label="产品">'+esc(e.prod||e.sub||e.cat||'')+'</td>'
+          +'<td data-label="注册号" class="rn">'+esc(e.regNo||'')+'</td>'
+          +'<td data-label="状态"><span class="badge '+(e.src==='CIFER'?(e.type==='有效'?'on':''):'')+'">'+esc(e.src==='CIFER'?('CIFER·'+(e.type||'')):((e.type||'在册').replace(/\n/g,'/')))+'</span></td>'
+          +'</tr>').join('')
+        +'</tbody></table></div></div></div>';
+    });
+    h+='</div>';
   }
 
   h+='</div>';
   box.innerHTML=h;
+}
+
+function egToggle(el){
+  const eg=el.parentElement, b=eg.querySelector('.eg-b');
+  const open=eg.dataset.open==='1';
+  eg.dataset.open=open?'0':'1';
+  b.style.display=open?'none':'block';
+}
+function egAll(open){
+  document.querySelectorAll('#resCountry .eg').forEach(eg=>{
+    eg.dataset.open=open?'1':'0';
+    const b=eg.querySelector('.eg-b'); if(b) b.style.display=open?'block':'none';
+  });
 }
 
 /* ================= 查询 ② 产品 -> 国家 ================= */
