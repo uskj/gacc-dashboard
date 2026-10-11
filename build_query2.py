@@ -13,16 +13,22 @@ off = json.load(open(os.path.join(BASE, 'gacc_official.json'), encoding='utf-8')
 cpm = json.load(open(os.path.join(BASE, 'chinaport_matrix.json'), encoding='utf-8'))
 bn = json.load(open(os.path.join(BASE, '_gacc_banned.json'), encoding='utf-8'))
 
+# 受限标注 (暂停/地域/部分产品)
+restr_path = os.path.join(BASE, '_gacc_restricted.json')
+restr = json.load(open(restr_path, encoding='utf-8')) if os.path.exists(restr_path) else {}
+
 def norm(s):
     return (s or '').strip()
 
-# GACC 官方: 品类 -> 国家集合
+# GACC 官方: 品类 -> 国家集合 (保留 key 对应关系)
 off_cats = OrderedDict()
+off_key_by_cat = OrderedDict()
 for k, v in off.items():
     if k == 'banned':
         continue
     cat = v.get('品类', k)
     off_cats[cat] = set(norm(x) for x in v.get('国家', []) if norm(x))
+    off_key_by_cat[cat] = k
 
 # 禁止输入明细: 国家 -> [动物条目]
 country_to_banned = bn.get('country_to_banned', {})
@@ -47,7 +53,13 @@ for cname in country_to_banned:
 countries = OrderedDict()
 for name in sorted(all_names):
     code = name2code.get(name, '')
-    official = sorted(cat for cat, cset in off_cats.items() if name in cset)
+    official_cats = sorted(cat for cat, cset in off_cats.items() if name in cset)
+    # 官方品类: {品类名: "准入" 或 受限说明}
+    official = OrderedDict()
+    for cat in official_cats:
+        src_key = off_key_by_cat.get(cat, '')
+        rmap = restr.get(src_key, {})
+        official[cat] = rmap.get(name, '准入')
     cp_cats = []
     if code:
         for cat, n in (cp_country_cat.get(code, {}) or {}).items():
@@ -94,7 +106,7 @@ out = {
             'http://scintl.chinaport.gov.cn/aprwebserver/pages/apr/public/html/companyList.html',
             'http://dzs.customs.gov.cn/dzs/2018-05/15/article_2025123119301285807.html',
         ],
-        'rule': 'official = GACC 官方准入名单; cifer = 在册注册辅证; banned_animals = 逐国禁止动物(疫病), 非全品全禁',
+        'rule': 'official = GACC 官方准入名单(品类->受限标注 dict, "准入"=无受限); cifer = 在册注册辅证; banned_animals = 逐国禁止动物(疫病), 非全品全禁',
         'generated': '2026-10-11',
         'official_cats': len(off_cats),
         'banned_countries': bn.get('total_countries', 0),
@@ -109,3 +121,9 @@ print('written query.json')
 print('countries:', len(countries), 'categories:', len(categories))
 print('有 banned_animals 的国:', sum(1 for v in countries.values() if v['banned_animals']))
 print('有 official 准入的国:', sum(1 for v in countries.values() if v['official']))
+n_restr = sum(1 for v in countries.values() for s in v['official'].values() if s != '准入')
+print('有受限标注的(国,品类)对:', n_restr)
+for v in countries.values():
+    for cat, s in v['official'].items():
+        if s != '准入':
+            print('  ', v['name'], cat, '=>', s)

@@ -588,11 +588,19 @@ function onCountryQuery() {
   if (sel === null) { box.innerHTML = '<div class="qempty">输入国家名 / 国家代码</div>'; return; }
   if (!sel.length) { box.innerHTML = '<div class="qempty">无匹配国家</div>'; return; }
   if (sel.length > 20) sel.length = 20;
+  // 兼容: official 可为 dict {品类: "准入"|"暂停进口"|...} 或旧式 array [品类]
+  const offOf = (c) => {
+    if (Array.isArray(c.official)) return c.official.map(x => [x, '准入']);
+    return Object.entries(c.official || {});
+  };
   box.innerHTML = sel.map(([code, c]) => {
-    const off = c.official || [];
+    const off = offOf(c);
     const cif = c.cifer || [];
     const offHtml = off.length
-      ? off.map(x => `<div class="qi"><span>${esc(x)}</span><span class="n">官方准入</span></div>`).join('')
+      ? off.map(([cat, st]) => {
+          const isRest = st && st !== '准入';
+          return `<div class="qi"><span>${isRest ? '<b style="color:#b8860b">⚠</b> ' : ''}${esc(cat)}</span><span class="n" ${isRest ? 'style="color:#b8860b"' : ''}>${esc(st || '准入')}</span></div>`;
+        }).join('')
       : '<div class="qi"><span class="cd">官方名单未收录（8 大类之外或暂未转录）</span></div>';
     const cifHtml = cif.length
       ? cif.map(x => `<div class="qi"><span>${esc(x)}</span><span class="n">在册注册</span></div>`).join('')
