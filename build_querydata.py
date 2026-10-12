@@ -128,10 +128,17 @@ for cname in sorted(all_names):
             kk = x.get('sub') or x.get('cat') or '其他'
             if kk:
                 cp_cats[kk] = cp_cats.get(kk, 0) + 1
+    # 让标签键(cifer_reg)与企业分片的 sub 字段一致: 直接用 ded 里真实的 sub 分布,
+    # 避免 chinaport 品类名 与 CIFER 品类名 不重叠导致前端按 sub 过滤 0 行
+    ent_sub = {}
+    for x in ded:
+        kk = x.get('sub') or x.get('cat') or '其他'
+        if kk:
+            ent_sub[kk] = ent_sub.get(kk, 0) + 1
     b = banned_cn.get(cname, [])
     countries[cname] = {
         'name': cname, 'num': num, 'official': oc,
-        'cifer_reg': cp_cats, 'enterprises': ded,
+        'cifer_reg': ent_sub if ent_sub else cp_cats, 'enterprises': ded,
         'banned': b, 'blank': not oc and not ded and not b,
     }
 
