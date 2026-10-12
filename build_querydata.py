@@ -222,12 +222,37 @@ cifer_placed = sum(1 for v in countries.values() for e in v['enterprises'] if e[
 assert cifer_placed == cifer_total, f'CIFER 明细丢失: placed={cifer_placed} total={cifer_total}'
 assert 'CIFER' in placed, 'CIFER 企业未入册'
 
+# ---- 分片输出: 国家企业明细按 num 拆到 shards/, 主文件只留计数+官方+禁止+品类 ----
+import glob
+os.makedirs(os.path.join(BASE, 'shards'), exist_ok=True)
+# 先清空旧分片
+for old in glob.glob(os.path.join(BASE, 'shards', 'country_*.json')):
+    os.remove(old)
+
+# 主文件 countries: 去掉企业明细, 留计数
+light_countries = OrderedDict()
+shard_written = 0
+for cname, c in countries.items():
+    num = c.get('num', '')
+    ent = c.get('enterprises', [])
+    if ent and num:
+        # 写分片 (含全部企业明细)
+        shard = {'name': cname, 'num': num, 'enterprises': ent}
+        with open(os.path.join(BASE, 'shards', 'country_%s.json' % num), 'w', encoding='utf-8') as f:
+            json.dump(shard, f, ensure_ascii=False)
+        shard_written += 1
+    # 主文件: 去掉企业明细, 留计数
+    c2 = dict(c)
+    c2['n_enterprises'] = len(ent)
+    c2['enterprises'] = []   # 占位, 前端按需 fetch shards/country_<num>.json
+    light_countries[cname] = c2
+
 out = {
     '_meta': {
         'generated': '2026-10-12',
         'sources': {
             '官方准入': 'GACC 总署附件 9 份 · 8 大类 (2026-08~10)',
-        'HS归类品目树': 'GACC 单一窗口 CUS_CLASSIFY · 93章 900品目 13094条 (非食品并行)',
+            'HS归类品目树': 'GACC 单一窗口 CUS_CLASSIFY · 93章 900品目 13094条 (非食品并行)',
             'chinaport': 'chinaport 进境动植物境外企业检疫注册登记',
             'CIFER': _cifer_src,
             '疫病禁止': 'GACC 禁止输入动物一览表 154 国 525 条 (2026-10-03)',
@@ -240,12 +265,18 @@ out = {
         ],
         'n_countries': len(countries), 'n_categories': len(categories),
         'n_products': len(pindex_alt),
+        'n_shards': shard_written,
+        'shard_dir': 'shards/country_',
     },
     'cc_map': cc_map, 'name2num': name2num,
-    'countries': countries, 'categories': categories,
+    'countries': light_countries, 'categories': categories,
     'products': pindex_alt,
 }
 json.dump(out, open(os.path.join(BASE, 'querydata.json'), 'w', encoding='utf-8'), ensure_ascii=False)
+import os as _os
+qsize = _os.path.getsize(os.path.join(BASE, 'querydata.json'))
+print('querydata.json size: %d KB' % (qsize // 1024))
+print('shards written: %d' % shard_written)
 
 print('cifer_total=%d cifer_placed=%d' % (cifer_total, cifer_placed))
 print('countries:', len(countries), 'categories:', len(categories), 'products:', len(pindex_alt))
