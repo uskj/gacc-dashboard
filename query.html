@@ -352,7 +352,7 @@ function entRow(e){
 function entTable(name,sub){
   const c=Object.values(DATA.countries).find(x=>x.name===name);
   const all=(c&&(c.enterprises||[]));
-  // 标签名=分片 sub(cifer_reg 已改为企业真实 sub 分布), 按 sub 过滤显示对应品类
+  // 按品类精确过滤（标签名已与分片 sub 严格一致）
   const list=(sub && sub!=='全部') ? all.filter(e=>(e.sub||e.cat||'其他')===sub) : all;
   return '<div class="tw"><table class="cmp"><thead><tr><th>企业</th><th>产品</th><th>注册号</th><th>状态</th></tr></thead><tbody>'
     +list.map(entRow).join('')+'</tbody></table></div>';
