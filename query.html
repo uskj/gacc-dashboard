@@ -351,7 +351,8 @@ function entRow(e){
 }
 function entTable(name,sub){
   const c=Object.values(DATA.countries).find(x=>x.name===name);
-  const list=(c&&(c.enterprises||[])).filter(e=>(e.sub||e.cat||'其他')===sub);
+  // 标签名(cifer_reg键)与企业 sub 体系不一致, 不按 sub 过滤, 直接显示该国全部企业
+  const list=(c&&(c.enterprises||[]));
   return '<div class="tw"><table class="cmp"><thead><tr><th>企业</th><th>产品</th><th>注册号</th><th>状态</th></tr></thead><tbody>'
     +list.map(entRow).join('')+'</tbody></table></div>';
 }
