@@ -505,31 +505,44 @@ $('resCat').addEventListener('click',ev=>{
 });
 </script>
 
+
 <div id="gate" class="gate" style="position:fixed;inset:0;background:rgba(7,10,18,.92);display:flex;align-items:center;justify-content:center;z-index:9999">
-  <div class="gbox" style="background:#141824;border:1px solid #2a2f4a;border-radius:12px;padding:24px;max-width:420px;width:90%;color:#e8e8e8;box-shadow:0 10px 40px rgba(0,0,0,.5)">
-    <h2 style="margin:0 0 12px 0;font-size:18px">注册后可使用查询功能</h2>
-    <p style="margin:0 0 16px 0;font-size:13px;opacity:.8">请填写基本信息，提交后即可解锁搜索（信息保存在本地浏览器）</p>
+  <div class="gbox" style="background:#141824;border:1px solid #2a2f4a;border-radius:12px;padding:24px;max-width:460px;width:90%;color:#e8e8e8;box-shadow:0 10px 40px rgba(0,0,0,.5)">
+    <h2 style="margin:0 0 8px 0;font-size:18px">注册后可使用查询功能</h2>
+    <p style="margin:0 0 14px 0;font-size:12px;opacity:.75">提交后将记录您的注册信息用于客户跟进</p>
     <div style="display:flex;flex-direction:column;gap:10px">
-      <input id="gName" placeholder="姓名/称呼" style="padding:10px;border:1px solid #3a3f5a;border-radius:8px;background:#0f1322;color:#fff">
-      <input id="gPhone" placeholder="手机号码" style="padding:10px;border:1px solid #3a3f5a;border-radius:8px;background:#0f1322;color:#fff">
-      <input id="gEmail" placeholder="邮箱（选填）" style="padding:10px;border:1px solid #3a3f5a;border-radius:8px;background:#0f1322;color:#fff">
-      <button id="gSubmit" style="padding:10px;border-radius:8px;background:#4f7cff;border:none;color:#fff;cursor:pointer">提交并解锁</button>
+      <input id="gName" placeholder="姓名（必填）" required style="padding:9px;border:1px solid #3a3f5a;border-radius:8px;background:#0f1322;color:#fff">
+      <input id="gPhone" placeholder="手机号码（必填）" required style="padding:9px;border:1px solid #3a3f5a;border-radius:8px;background:#0f1322;color:#fff">
+      <input id="gEmail" placeholder="邮箱（必填）" required style="padding:9px;border:1px solid #3a3f5a;border-radius:8px;background:#0f1322;color:#fff">
+      <input id="gCompany" placeholder="公司名称（选填）" style="padding:9px;border:1px solid #3a3f5a;border-radius:8px;background:#0f1322;color:#fff">
+      <input id="gNote" placeholder="备注（选填）" style="padding:9px;border:1px solid #3a3f5a;border-radius:8px;background:#0f1322;color:#fff">
+      <button id="gSubmit" style="padding:10px;border-radius:8px;background:#4f7cff;border:none;color:#fff;cursor:pointer">提交注册并解锁</button>
       <div id="gMsg" style="font-size:12px;opacity:.7"></div>
     </div>
   </div>
 </div>
-
 <script>
 (function(){
   const key="gacc_reg_info";
   const gate=document.getElementById("gate");
   if(localStorage.getItem(key)){ gate.style.display="none"; return; }
-  document.getElementById("gSubmit").onclick=function(){
+  document.getElementById("gSubmit").onclick=async function(){
     const name=document.getElementById("gName").value.trim();
     const phone=document.getElementById("gPhone").value.trim();
     const email=document.getElementById("gEmail").value.trim();
-    if(!name||!phone){ document.getElementById("gMsg").textContent="请填写姓名和手机号"; return; }
-    localStorage.setItem(key,JSON.stringify({name,phone,email,time:Date.now()}));
+    const company=document.getElementById("gCompany").value.trim();
+    const note=document.getElementById("gNote").value.trim();
+    if(!name||!phone||!email){ document.getElementById("gMsg").textContent="请填写姓名、手机和邮箱（均为必填）"; return; }
+    const btn=document.getElementById("gSubmit"); btn.disabled=true; btn.textContent="提交中...";
+    const data={name,phone,email,company,note,ua:navigator.userAgent,ts:Date.now(),url:location.href};
+    try{
+      const cfg=localStorage.getItem("gacc_reg_webhook");
+      if(cfg){
+        await fetch(cfg,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(data)});
+      }
+    }catch(e){}
+    localStorage.setItem(key,JSON.stringify(data));
+    btn.textContent="提交注册并解锁"; btn.disabled=false;
     gate.style.display="none";
   };
 })();
