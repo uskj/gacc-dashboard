@@ -454,7 +454,7 @@ function renderCat(name){
       h+='<div class="sec"><span class="st st-cif">'+(cat.src==='cifer'?'CIFER 注册企业国家 ('+cf.length+')':'chinaport 有注册企业国家 ('+cf.length+')')+'</span>'
         +'<div class="hint">点击国家标签展开/收起 · 查看该国该品类注册企业明细</div>'
         +'<div class="chips">'+cf.map(([num,n])=>'<span class="chip cif cx" data-cc="'+esc(num)+'">'+esc(DATA.cc_map[num]||num)+' <span class="m">'+n+' 家</span><span class="caret">▸</span></span>').join('')+'</div>'
-        +'<div class="cx-box"></div></div>';
+        +'<div class="cx-box" data-cat="'+esc(k)+'"></div></div>';
     } else if(!hasAnyData && cat.src!=='hs_chapter' && cat.src!=='hs_heading'){
       h+='<div class="sec"><span class="st st-blank">暂未收录</span>'
         +'<div class="hint">该品类属于 GACC 全注册品类树，当前数据源尚无对应的国家准入或企业注册记录。请走 GACC 官方准入申请或联系顾问核实。</div></div>';
@@ -470,17 +470,26 @@ $('resCat').addEventListener('click',ev=>{
   const chip=ev.target.closest('.chip.cx'); if(!chip) return;
   const box=$('resCat').querySelector('.cx-box');
   const num=chip.dataset.cc;
+  // 取当前展开的品类名 (该 chip 所在 sec 的 st-cif 标签里写的品类)
+  const secTitle=chip.closest('.sec')?.querySelector('.st')?.textContent||'';
+  // secTitle 形如 "CIFER 注册企业国家 (N)", 品类名在外层 rh 里
+  // 更可靠: 用 box.dataset.cat (我们在渲染时存进去)
+  const catKey=box.dataset.cat||'';
   const was=box.classList.contains('open')&&box.dataset.cc===num;
   document.querySelectorAll('#resCat .chip.cx').forEach(x=>x.classList.remove('on'));
   box.classList.toggle('open',!was);
   if(!was){
     box.dataset.cc=num; chip.classList.add('on');
     const cn=DATA.cc_map[num]||num;
-    const c=Object.values(DATA.countries).find(x=>x.name===cn);
     box.innerHTML='<div class="empty">加载中…</div>';
     loadCountryShard(num,cn).then(()=>{
       const c2=Object.values(DATA.countries).find(x=>x.name===cn);
-      const list=(c2&&c2.enterprises)||[];
+      let list=(c2&&c2.enterprises)||[];
+      // 按品类过滤: 只有当 catKey 能匹配到 sub 时才过滤, 否则显示全部
+      if(catKey){
+        const filtered=list.filter(e=>(e.sub||e.cat||'')===catKey);
+        if(filtered.length) list=filtered;
+      }
       box.innerHTML='<div class="tw"><table class="cmp"><thead><tr><th>企业</th><th>产品/品类</th><th>注册号</th><th>状态</th></tr></thead><tbody>'
         +list.map(e=>'<tr><td data-label="企业">'+esc(e.name||'—')+'</td>'
           +'<td data-label="品类">'+esc(e.sub||e.cat||'')+'</td>'
