@@ -157,6 +157,16 @@ for rt, cc in cifer_cat.items():
     for k, v in cc.items():
         c['cifer'][k] = c['cifer'].get(k, 0) + v
 
+# ---- GACC 全注册品类树 (131 项, 含无企业明细的品类也列出, 可查但标注"暂无国家数据") ----
+RT_PATH = os.path.join(BASE, '_register_types.json')
+if os.path.exists(RT_PATH):
+    rt_map = L('_register_types.json')   # codeValue -> [name, parentCode]
+    rt_names = [v[0] for v in rt_map.values() if v[0]]
+    for rn in rt_names:
+        if rn not in categories:
+            categories[rn] = {'official': [], 'status': {}, 'cifer': {},
+                              'n_official': 0, 'src': 'gacc_all'}
+
 # ---- 校验: 任何 CIFER 明细都不得丢失 ----
 placed = {x['src'] for v in countries.values() for x in v['enterprises']}
 cifer_placed = sum(1 for v in countries.values() for e in v['enterprises'] if e['src'] == 'CIFER')
