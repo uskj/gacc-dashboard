@@ -261,6 +261,10 @@ function fuzzy(q,list){
       let i=0,ok=true; for(const ch of q){i=lx.indexOf(ch,i); if(i<0){ok=false;break;} i++;}
       score = ok?5:99;
     }
+    if(score>=9){
+      if((q==="蜂蜜"||q==="fengmi") && (lx.indexOf("蜂产品")>=0||lx.indexOf("蜂")>=0)){ score=6; }
+      else if(q==="蜂产品" && lx.indexOf("蜂蜜")>=0){ score=6; }
+    }
     if(score<9) out.push([x,score]);
   }
   out.sort((a,b)=>a[1]-b[1]||a[0].localeCompare(b[0]));
