@@ -394,7 +394,8 @@ function renderCat(name){
       h+='<div class="rh" style="border-top:1px solid var(--line)"><span>📦 产品「'+esc(p)+'」</span><span class="cnt">'+cs.length+' 国</span></div>';
     }
     h+='<div class="sec"><span class="st st-off">GACC 官方准入国家</span>';
-    h+=cs.length?('<div class="chips">'+cs.map(cn=>'<span class="chip ok">'+esc(cn)+'</span>').join('')+'</div>'):'<div class="hint">无官方准入记录</div>';
+    h+=cs.length?('<div class="chips">'+cs.map(cn=>'<span class="chip ok">'+esc(cn)+'</span>').join('')+'</div>')
+      :'<div class="hint">暂未收录准入国数据 · 该条目属 GACC HS 归类品目（非食品准入名录），请走官方准入申请或联系顾问核实</div>';
     h+='</div>';
   });
 
@@ -402,14 +403,30 @@ function renderCat(name){
   cats.forEach(k=>{
     const cat=DATA.categories[k];
     const oc=(cat.status||{});
-    const srcName = cat.src==='official'?'官方准入品类':(cat.src==='cifer'?'CIFER 境外食品企业注册品类':(cat.src==='gacc_all'?'GACC 全注册品类（暂未收录国家数据）':'chinaport 注册品类'));
+    const srcName = cat.src==='official'?'官方准入品类'
+      :(cat.src==='cifer'?'CIFER 境外食品企业注册品类'
+      :(cat.src==='gacc_all'?'GACC 全注册品类（暂未收录国家数据）'
+      :(cat.src==='hs_chapter'?'GACC HS 章别 '+k.split(' ')[0]
+      :(cat.src==='hs_heading'?'GACC HS 品目 '+k.slice(0,4):'chinaport 注册品类')));
     const hasAnyData = (cat.official||[]).length>0 || Object.keys(cat.cifer||{}).length>0;
+    // HS 章/品目: 显示 HS 码 + 章下品目列表
+    let hsBlock='';
+    if(cat.src==='hs_chapter' && cat.hs_code){
+      hsBlock='<div class="sec"><span class="st st-cif">HS 章 '+cat.hs_code+' · 归类章别</span>'
+        +'<div class="hint">该章下含 '+(cat.headings?cat.headings.length:0)+' 个 4 位品目 · 数据来源：GACC 单一窗口 CUS_CLASSIFY（HS 归类品目树，非食品/农产品并行）</div></div>';
+    } else if(cat.src==='hs_heading' && cat.hs_code){
+      hsBlock='<div class="sec"><span class="st st-cif">HS 品目 '+cat.hs_code+(cat.chapter?'（第'+cat.chapter+'章）':'')+'</span>'
+        +'<div class="hint">归类品目级条目 · 数据来源：GACC 单一窗口 CUS_CLASSIFY（HS 归类品目树）</div></div>';
+    }
     h+='<div class="rh"'+(prods.length?' style="border-top:2px solid var(--line)"':'')+'><span>📂 品类「'+esc(k)+'」</span><span class="cnt">'+srcName+'</span></div>';
+    if(hsBlock) h+=hsBlock;
     h+='<div class="sec"><span class="st st-off">官方准入国家 ('+(cat.official||[]).length+')</span>';
     if((cat.official||[]).length){
       h+='<div class="chips">'+cat.official.map(cn=>{const st=oc[cn]||'准入';
         return st==='准入'?'<span class="chip ok">'+esc(cn)+'</span>':'<span class="chip warn" title="'+esc(st)+'">⚠ '+esc(cn)+' <span class="m">'+esc(st)+'</span></span>';
       }).join('')+'</div>';
+    } else if(cat.src==='hs_chapter'||cat.src==='hs_heading'){
+      h+='<div class="hint">暂未收录准入国数据 —— 该 HS 章/品目属 GACC 归类品目树（非食品准入名录），目前未接入国别准入清单。请走 GACC 官方准入申请或联系顾问核实。</div>';
     } else h+='<div class="hint">无官方准入国家</div>';
     h+='</div>';
     const cf=Object.entries(cat.cifer||{});
@@ -418,7 +435,7 @@ function renderCat(name){
         +'<div class="hint">点击国家标签展开/收起 · 查看该国该品类注册企业明细</div>'
         +'<div class="chips">'+cf.map(([num,n])=>'<span class="chip cif cx" data-cc="'+esc(num)+'">'+esc(DATA.cc_map[num]||num)+' <span class="m">'+n+' 家</span><span class="caret">▸</span></span>').join('')+'</div>'
         +'<div class="cx-box"></div></div>';
-    } else if(!hasAnyData){
+    } else if(!hasAnyData && cat.src!=='hs_chapter' && cat.src!=='hs_heading'){
       h+='<div class="sec"><span class="st st-blank">暂未收录</span>'
         +'<div class="hint">该品类属于 GACC 全注册品类树，当前数据源尚无对应的国家准入或企业注册记录。请走 GACC 官方准入申请或联系顾问核实。</div></div>';
     }

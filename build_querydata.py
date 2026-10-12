@@ -167,6 +167,55 @@ if os.path.exists(RT_PATH):
             categories[rn] = {'official': [], 'status': {}, 'cifer': {},
                               'n_official': 0, 'src': 'gacc_all'}
 
+# ---- HS 品类树 (93 章 + 900 品目, 非农产品并行; 钾肥/硫磺/尿素等走这里) ----
+HS_PATH = os.path.join(BASE, '_hs_taxonomy.json')
+if os.path.exists(HS_PATH):
+    hs = L('_hs_taxonomy.json')
+    chs = hs.get('chapters', {})
+    hds = hs.get('headings', {})
+    # 章级品类 (可查章, 聚合其下品目)
+    for ch, ci in chs.items():
+        cname = ci.get('name') or ('第%s章' % ch)
+        key = '第%s章 %s' % (ch, cname)
+        if key not in categories:
+            categories[key] = {'official': [], 'status': {}, 'cifer': {},
+                                'n_official': 0, 'src': 'hs_chapter',
+                                'hs_code': ch, 'headings': hds and ci.get('headings', [])}
+    # 品目级品类 (每个 4 位品目一条)
+    for hd, hi in hds.items():
+        cname = hi.get('name') or hd
+        key = '品目%s %s' % (hd, cname)
+        if key not in categories:
+            categories[key] = {'official': [], 'status': {}, 'cifer': {},
+                                'n_official': 0, 'src': 'hs_heading',
+                                'hs_code': hd, 'chapter': hi.get('chapter','')}
+
+# ---- 非农产品别名 (客户常用叫法 -> 归到 HS 章/品目, 让自动补全能命中钾肥/硫磺等) ----
+# 值 = 该词映射到的 HS 章名(可查品类 key 里的短名), 用于在 products 里建别名索引
+_NONAG_ALIAS = {
+    '钾肥': '钾肥（氯化钾/硫酸钾/钾肥类）',
+    '硫酸钾': '品目3104 氯化钾',
+    '氯化钾': '品目3104 氯化钾',
+    '硝酸钾': '品目3104 氯化钾',
+    '尿素': '品目3102 尿素',
+    '氮肥': '氮肥（尿素/硫酸铵/硝酸铵）',
+    '磷酸二铵': '品目3105 磷酸二氢铵',
+    '复合肥': '氮磷钾复合肥',
+    '硫磺': '品目2503 硫磺',
+    '磷肥': '磷肥（重过磷酸钙/磷酸二铵）',
+    '过磷酸钙': '品目3103 重过磷酸钙',
+    '化肥': '化肥（氮/磷/钾肥料）',
+    '钾肥类': '钾肥（氯化钾/硫酸钾/钾肥类）',
+    '磷矿': '磷矿（磷肥原料）',
+    '钾矿': '钾矿（钾肥原料）',
+    '氨水': '氨水（氮肥）',
+}
+# 把别名作为 products 索引, 值=[] (暂无准入国), 让前端能搜到并跳到"暂未收录"
+pindex_alt = dict(pindex)
+for alias in _NONAG_ALIAS:
+    if alias not in pindex_alt:
+        pindex_alt[alias] = []
+
 # ---- 校验: 任何 CIFER 明细都不得丢失 ----
 placed = {x['src'] for v in countries.values() for x in v['enterprises']}
 cifer_placed = sum(1 for v in countries.values() for e in v['enterprises'] if e['src'] == 'CIFER')
@@ -178,6 +227,7 @@ out = {
         'generated': '2026-10-12',
         'sources': {
             '官方准入': 'GACC 总署附件 9 份 · 8 大类 (2026-08~10)',
+        'HS归类品目树': 'GACC 单一窗口 CUS_CLASSIFY · 93章 900品目 13094条 (非食品并行)',
             'chinaport': 'chinaport 进境动植物境外企业检疫注册登记',
             'CIFER': _cifer_src,
             '疫病禁止': 'GACC 禁止输入动物一览表 154 国 525 条 (2026-10-03)',
@@ -189,16 +239,16 @@ out = {
             'http://dzs.customs.gov.cn/dzs/2018-05/15/article_2025123119301285807.html',
         ],
         'n_countries': len(countries), 'n_categories': len(categories),
-        'n_products': len(pindex),
+        'n_products': len(pindex_alt),
     },
     'cc_map': cc_map, 'name2num': name2num,
     'countries': countries, 'categories': categories,
-    'products': pindex,
+    'products': pindex_alt,
 }
 json.dump(out, open(os.path.join(BASE, 'querydata.json'), 'w', encoding='utf-8'), ensure_ascii=False)
 
 print('cifer_total=%d cifer_placed=%d' % (cifer_total, cifer_placed))
-print('countries:', len(countries), 'categories:', len(categories), 'products:', len(pindex))
+print('countries:', len(countries), 'categories:', len(categories), 'products:', len(pindex_alt))
 n_ent = sum(len(c['enterprises']) for c in countries.values())
 print('enterprises total:', n_ent)
 for probe in ['墨西哥', '巴西', '俄罗斯联邦', '美国', '印度', '阿根廷', '巴布亚新几内亚', '萨摩亚']:
