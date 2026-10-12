@@ -314,15 +314,14 @@ function renderCountry(name){
   } else h+='<div class="hint">无官方准入品类</div>';
   h+='</div>';
 
-  // 可联系企业（标签点击展开，全部收录）
-  const es=c.enterprises||[];
-  h+='<div class="sec"><span class="st st-cif">可联系企业 ('+es.length+' 家)</span>';
-  if(es.length){
-    const groups={};
-    es.forEach(e=>{const k=e.sub||e.cat||'其他';(groups[k]=groups[k]||[]).push(e);});
-    const gkeys=Object.keys(groups).sort((a,b)=>groups[b].length-groups[a].length||a.localeCompare(b,'zh'));
-    h+='<div class="hint">点击分类标签展开/收起 · '+gkeys.length+' 类全部收录（无条数上限）</div>'
-      +'<div class="chips">'+gkeys.map(k=>'<span class="chip cif cx" data-sub="'+esc(k)+'">'+esc(k)+' <span class="m">'+groups[k].length+' 家</span><span class="caret">▸</span></span>').join('')+'</div>'
+  // 可联系企业（标签点击展开，全部收录；主文件无明细, 首次展开 fetch 分片）
+  const nEnt=c.n_enterprises||0;
+  h+='<div class="sec"><span class="st st-cif">可联系企业 ('+nEnt+' 家)</span>';
+  if(nEnt){
+    const reg=c.cifer_reg||{};
+    const regKeys=Object.keys(reg).sort((a,b)=>reg[b]-reg[a]||a.localeCompare(b,'zh'));
+    h+='<div class="hint">点击分类标签展开/收起 · '+regKeys.length+' 类 · 首次点击时按需加载该国明细</div>'
+      +'<div class="chips">'+regKeys.map(k=>'<span class="chip cif cx" data-sub="'+esc(k)+'" data-num="'+esc(c.num)+'">'+esc(k)+' <span class="m">'+reg[k]+' 家</span><span class="caret">▸</span></span>').join('')+'</div>'
       +'<div class="cx-box"></div>';
   } else h+='<div class="hint">无在册注册企业</div>';
   h+='</div>';
@@ -356,6 +355,20 @@ function entTable(name,sub){
   return '<div class="tw"><table class="cmp"><thead><tr><th>企业</th><th>产品</th><th>注册号</th><th>状态</th></tr></thead><tbody>'
     +list.map(entRow).join('')+'</tbody></table></div>';
 }
+// 按需加载国家企业明细分片 (主文件无明细, 首次展开才 fetch)
+const _shardCache={};
+async function loadCountryShard(num,name){
+  if(_shardCache[num]) return _shardCache[num];
+  if(!num) return [];
+  try{
+    const j=await (await fetch('data/shards/country_'+num+'.json')).json();
+    _shardCache[num]=j.enterprises||[];
+    // 回填到 DATA, 后续同国查询不再 fetch
+    const c=Object.values(DATA.countries).find(x=>x.name===name);
+    if(c){ c.enterprises=_shardCache[num]; }
+    return _shardCache[num];
+  }catch(e){ _shardCache[num]=[]; return []; }
+}
 $('resCountry').addEventListener('click',ev=>{
   const chip=ev.target.closest('.chip.cx'); if(!chip) return;
   const box=$('resCountry').querySelector('.cx-box');
@@ -363,7 +376,12 @@ $('resCountry').addEventListener('click',ev=>{
   const was=box.classList.contains('open')&&box.dataset.sub===sub;
   document.querySelectorAll('#resCountry .chip.cx').forEach(x=>x.classList.remove('on'));
   box.classList.toggle('open',!was);
-  if(!was){ box.dataset.sub=sub; chip.classList.add('on'); box.innerHTML=entTable($('resCountry').dataset.name,sub); }
+  if(!was){
+    box.dataset.sub=sub; chip.classList.add('on');
+    const num=chip.dataset.num; const name=$('resCountry').dataset.name;
+    box.innerHTML='<div class="empty">加载中…</div>';
+    loadCountryShard(num,name).then(()=>{ box.innerHTML=entTable(name,sub); });
+  }
   else { box.dataset.sub=''; box.innerHTML=''; }
 });
 
@@ -407,7 +425,7 @@ function renderCat(name){
       :(cat.src==='cifer'?'CIFER 境外食品企业注册品类'
       :(cat.src==='gacc_all'?'GACC 全注册品类（暂未收录国家数据）'
       :(cat.src==='hs_chapter'?'GACC HS 章别 '+k.split(' ')[0]
-      :(cat.src==='hs_heading'?'GACC HS 品目 '+k.slice(0,4):'chinaport 注册品类')));
+       :(cat.src==='hs_heading'?'GACC HS 品目 '+k.slice(0,4):'chinaport 注册品类'))));
     const hasAnyData = (cat.official||[]).length>0 || Object.keys(cat.cifer||{}).length>0;
     // HS 章/品目: 显示 HS 码 + 章下品目列表
     let hsBlock='';
@@ -457,13 +475,17 @@ $('resCat').addEventListener('click',ev=>{
     box.dataset.cc=num; chip.classList.add('on');
     const cn=DATA.cc_map[num]||num;
     const c=Object.values(DATA.countries).find(x=>x.name===cn);
-    const list=(c&&c.enterprises)||[];
-    box.innerHTML='<div class="tw"><table class="cmp"><thead><tr><th>企业</th><th>产品/品类</th><th>注册号</th><th>状态</th></tr></thead><tbody>'
-      +list.map(e=>'<tr><td data-label="企业">'+esc(e.name||'—')+'</td>'
-        +'<td data-label="品类">'+esc(e.sub||e.cat||'')+'</td>'
-        +'<td data-label="注册号" class="rn">'+esc(e.regNo||'')+'</td>'
-        +'<td data-label="状态"><span class="badge '+(e.type==='有效'?'on':'')+'">'+esc('CIFER·'+(e.type||''))+'</span></td></tr>').join('')
-      +'</tbody></table></div>';
+    box.innerHTML='<div class="empty">加载中…</div>';
+    loadCountryShard(num,cn).then(()=>{
+      const c2=Object.values(DATA.countries).find(x=>x.name===cn);
+      const list=(c2&&c2.enterprises)||[];
+      box.innerHTML='<div class="tw"><table class="cmp"><thead><tr><th>企业</th><th>产品/品类</th><th>注册号</th><th>状态</th></tr></thead><tbody>'
+        +list.map(e=>'<tr><td data-label="企业">'+esc(e.name||'—')+'</td>'
+          +'<td data-label="品类">'+esc(e.sub||e.cat||'')+'</td>'
+          +'<td data-label="注册号" class="rn">'+esc(e.regNo||'')+'</td>'
+          +'<td data-label="状态"><span class="badge '+(e.type==='有效'?'on':'')+'">'+esc('CIFER·'+(e.type||''))+'</span></td></tr>').join('')
+        +'</tbody></table></div>';
+    });
   } else { box.dataset.cc=''; box.innerHTML=''; }
 });
 </script>
