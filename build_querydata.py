@@ -9,7 +9,23 @@ BASE = r'D:\Projects\gacc_dashboard_site\data'
 def L(n): return json.load(open(os.path.join(BASE, n), encoding='utf-8'))
 
 off = L('gacc_official.json'); restrict = L('_gacc_restricted.json')
-cpm = L('chinaport_matrix.json'); cifer = L('cifer_enterprises_all.json')
+cpm = L('chinaport_matrix.json')
+# ---- CIFER 源: 优先全量 cifer_live_all.json (98653 明细, 扁平 rows[]), 缺失则回退旧快照 ----
+LIVE = os.path.join(BASE, 'cifer_live_all.json')
+CIVER_KEY = 'cifer'  # 标记变量名
+if os.path.exists(LIVE):
+    _lj = L('cifer_live_all.json')
+    _live_rows = _lj.get('rows', [])
+    # 扁平 rows[] -> 按 ISO 聚合 {iso: {'records': [...]}}
+    cifer = defaultdict(lambda: {'records': []})
+    for r in _live_rows:
+        iso = (r.get('country') or '').strip().upper()
+        cifer[iso]['records'].append(r)
+    cifer = dict(cifer)
+    _cifer_src = 'cifer_live_all.json (全量 %d)' % len(_live_rows)
+else:
+    cifer = L('cifer_enterprises_all.json')
+    _cifer_src = 'cifer_enterprises_all.json (旧快照)'
 bn = L('_gacc_banned.json'); comp4 = L('_4countries_companies.json')
 pindex = L('_products_index.json')['products']
 
@@ -153,7 +169,7 @@ out = {
         'sources': {
             '官方准入': 'GACC 总署附件 9 份 · 8 大类 (2026-08~10)',
             'chinaport': 'chinaport 进境动植物境外企业检疫注册登记',
-            'CIFER': 'GACC 单一窗口境外食品生产企业注册 (全 158 国)',
+            'CIFER': _cifer_src,
             '疫病禁止': 'GACC 禁止输入动物一览表 154 国 525 条 (2026-10-03)',
         },
         'links': [
