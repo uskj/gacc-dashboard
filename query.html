@@ -88,6 +88,24 @@ table.cmp td.rn{font-family:Consolas,monospace;font-size:11px;color:var(--cif);w
 .legend{font-size:11px;color:var(--dim);margin-top:14px;line-height:1.9}
 .legend b{color:var(--txt)}
 .foot{margin-top:24px;font-size:11px;color:var(--dim);text-align:center}
+/* ---- 服务能力 ---- */
+.svc{margin-top:26px;background:var(--card);border:1px solid var(--line);border-radius:12px;overflow:hidden}
+.svc .svc-h{padding:14px 16px;border-bottom:1px solid var(--line);display:flex;align-items:center;gap:10px}
+.svc .svc-h h2{font-size:14px;font-weight:700}
+.svc .svc-h .svc-tag{font-size:10.5px;font-weight:600;color:#fff;background:var(--ok);padding:2px 8px;border-radius:20px}
+.svc .svc-body{padding:16px}
+.svc-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+.svc-item{border:1px solid var(--line);border-radius:10px;padding:14px 15px;background:#fbfcfe}
+.svc-item h3{font-size:13px;font-weight:700;color:var(--txt);margin-bottom:6px;display:flex;align-items:center;gap:7px}
+.svc-item h3 .n{font-size:10px;font-weight:700;color:#fff;background:var(--acc);width:19px;height:19px;border-radius:50%;display:inline-flex;align-items:center;justify-content:center;flex:0 0 auto}
+.svc-item p{font-size:12px;color:var(--dim);line-height:1.6}
+.svc-item ul{margin:6px 0 0;padding-left:16px}
+.svc-item li{font-size:12px;color:var(--txt);line-height:1.7}
+.svc-item li b{color:var(--acc);font-weight:700}
+.svc-cta{margin-top:14px;padding:14px 16px;background:#f0f5ff;border:1px solid #cddcf7;border-radius:10px;font-size:12.5px;color:var(--cif);line-height:1.7}
+.svc-cta b{color:var(--ban);font-weight:700}
+.svc-cta a{color:var(--acc);font-weight:700}
+@media(max-width:640px){.svc-grid{grid-template-columns:1fr}}
 @media(max-width:640px){
   .wrap{padding:14px 10px 44px}
   .head h1{font-size:17px}
@@ -155,6 +173,58 @@ table.cmp td.rn{font-family:Consolas,monospace;font-size:11px;color:var(--cif);w
     <span class="chip" style="border-color:#f0c2c2;color:var(--ban)">红</span> 疫病禁止输入
     <br>数据来源：GACC 海关总署官网准入名单 · chinaport 进境动植物境外企业检疫注册登记系统 · GACC 禁止输入动物一览表
   </div>
+
+  <!-- 我们能做什么 -->
+  <div class="svc">
+    <div class="svc-h">
+      <span class="svc-tag">服务能力</span>
+      <h2>我们能做什么 · 帮客户把"能不能进"变成"怎么进"</h2>
+    </div>
+    <div class="svc-body">
+      <div class="svc-grid">
+        <div class="svc-item">
+          <h3><span class="n">1</span>准入状态查询</h3>
+          <p>30 秒判断某国某产品当前能不能进中国。</p>
+          <ul>
+            <li>按<b>国家</b>：查准入哪些产品、哪些品类在列</li>
+            <li>按<b>产品</b>：查可从哪些国家进口、哪些受限</li>
+            <li>覆盖 <b>官方准入名单 + 疫病禁止 + 在册注册企业</b>三类</li>
+          </ul>
+        </div>
+        <div class="svc-item">
+          <h3><span class="n">2</span>在册企业核对</h3>
+          <p>查你（或供应商）的境外企业是否已在中国海关注册备案。</p>
+          <ul>
+            <li>按企业名 / 注册号精确检索 <b>9.8 万条</b>境外食品生产企业</li>
+            <li>确认注册品类、有效期、当前状态（有效/暂停/恢复）</li>
+            <li>未在册 → 提示需先完成 <b>GACC 境外企业注册</b></li>
+          </ul>
+        </div>
+        <div class="svc-item">
+          <h3><span class="n">3</span>合规落地支持</h3>
+          <p>从"查到"到"进得去"，提供全程合规协助。</p>
+          <ul>
+            <li>准入/注册/备案的<b>流程指引与单证准备</b></li>
+            <li>受限品类的<b>地域限制 / 暂停恢复</b>跟踪</li>
+            <li>疫病禁止品类的<b>替代方案</b>建议</li>
+          </ul>
+        </div>
+        <div class="svc-item">
+          <h3><span class="n">4</span>数据持续更新</h3>
+          <p>数据源每日同步，政策变动第一时间可查。</p>
+          <ul>
+            <li>官方公告 / 准入名单 / 禁令<b>实时收录</b></li>
+            <li>企业注册状态<b>动态核验</b></li>
+            <li>支持<b>导出查询结果</b>存档备查</li>
+          </ul>
+        </div>
+      </div>
+      <div class="svc-cta">
+        本页面为<b>查询工具</b>，供内部及客户快速自检。具体准入/注册操作、单证代办、受限品类处理，请联系顾问。
+      </div>
+    </div>
+  </div>
+
   <div class="foot" id="foot"></div>
 </div>
 
