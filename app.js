@@ -22,6 +22,7 @@ async function load() {
   renderNews();
   renderCifer();
   renderAlerts();
+  renderPriorityBoard();
 }
 
 async function renderAlerts() {
@@ -516,6 +517,73 @@ function showCiferDetail(c3, cat, n) {
 
 load(); startAuto(); renderCifer(); renderQuery();
 
+/* ===== 需准入国家优先级总榜 (三源加权: 官方准入×CIFER在册×进口意向) ===== */
+let _prioBoard = null; // [{code,name,qcode,off_acc,cifer,imp,tier,impdisp,score,grade}]
+let _prioByQcode = null, _prioByIso3 = null;
+function prioBarColor(g) {
+  return g === 'A' ? '#e05555' : (g === 'B' ? '#f5a524' : (g === 'C' ? '#2f6fed' : '#c3c9d6'));
+}
+async function renderPriorityBoard() {
+  const box = document.getElementById('prioBody');
+  if (!box) return;
+  let pb = null;
+  try {
+    const r = await fetch(API_BASE + '/priority_board.json?t=' + Date.now(), { cache: 'no-store' });
+    pb = await r.json();
+  } catch { pb = null; }
+  if (!pb || !(pb.board || []).length) {
+    box.innerHTML = '<div class="dim">总榜暂无数据 — 需先运行 data/build_priority.py 生成 priority_board.json</div>';
+    return;
+  }
+  _prioBoard = pb.board.map(b => ({
+    code: b.iso3 || b.qcode,
+    name: b.name,
+    qcode: b.qcode,
+    off_acc: b.official,
+    off_tot: b.official_total,
+    cifer: b.enterprises,
+    imp: b.import_usd,
+    impdisp: (b.import_usd || 0) / 1e9,
+    tier: b.tier || '',
+    score: b.score,
+    grade: b.grade
+  }));
+  _prioByQcode = {}; _prioByIso3 = {};
+  _prioBoard.forEach(b => { _prioByQcode[b.qcode] = b; _prioByIso3[b.code] = b; });
+  const n = document.getElementById('prioN'); if (n) n.textContent = _prioBoard.length;
+  const dt = document.getElementById('prioDate'); if (dt) dt.textContent = (pb._meta && pb._meta.generated) || pb.generated || '--';
+
+  const w = (pb._meta && pb._meta.weights) || {};
+  const legend = `官方准入 ${(w.official*100||40)} · 在册注册 ${(w.enterprises*100||30)} · 进口意向 ${(w.import*100||30)}`;
+  box.innerHTML = `
+    <div class="dim" style="margin-bottom:6px">权重 ${legend}</div>
+    <div class="qres" style="max-height:460px">
+      <div class="phead">
+        <div></div><div class="cname">国家</div><div>官方准入</div><div>在册企业</div><div>进口额</div><div>优先级分</div>
+      </div>
+      ${_prioBoard.map((b, i) => {
+        const impTxt = b.impdisp > 0 ? '$' + (b.impdisp >= 1 ? b.impdisp.toFixed(2) + 'B' : (b.impdisp * 1000).toFixed(0) + 'M') : (b.impdisp === 0 ? '未抓取' : '');
+        return `<div class="prorow">
+          <div class="rank">${i + 1}</div>
+          <div class="cname"><span class="pgrade ${b.grade}">${b.grade}</span><b>${esc(b.name)}</b>
+            <span class="sub" style="margin-left:6px">${esc(b.code)}${b.tier ? ' · [意向' + esc(b.tier) + ']' : ''}</span></div>
+          <div class="num"><span class="v">${b.off_acc}</span> <span class="u">/${b.off_tot}类</span></div>
+          <div class="num"><span class="v">${b.cifer}</span> <span class="u">家</span></div>
+          <div class="num">${impTxt ? '<span class="v">' + impTxt + '</span>' : '<span class="cd">未抓取</span>'}</div>
+          <div class="score" style="color:${prioBarColor(b.grade)}">${b.score.toFixed(1)}
+            <div class="pbar"><i style="width:${b.score}%;background:${prioBarColor(b.grade)}"></i></div>
+          </div>
+        </div>`;
+      }).join('')}
+    </div>`;
+}
+function prioBadgeFor(name) {
+  if (!_prioByIso3 && !_prioByQcode) return '';
+  const b = _prioBoard && _prioBoard.find(x => x.name === name);
+  if (!b) return '';
+  return `<span class="pgrade ${b.grade}" title="需准入优先级 ${b.score.toFixed(1)} / 100 · 在册 ${b.cifer} 家">${b.grade} ${b.score.toFixed(0)}</span>`;
+}
+
 /* ===== 准入双向查询: 国→品类 / 品类→国 (三源结构: official / cifer / banned_animals) ===== */
 let qData = null;
 let _qBound = false;
@@ -602,13 +670,25 @@ function onCountryQuery() {
           return `<div class="qi"><span>${isRest ? '<b style="color:#b8860b">⚠</b> ' : ''}${esc(cat)}</span><span class="n" ${isRest ? 'style="color:#b8860b"' : ''}>${esc(st || '准入')}</span></div>`;
         }).join('')
       : '<div class="qi"><span class="cd">官方名单未收录（8 大类之外或暂未转录）</span></div>';
+    // 在册注册：按优先级排序（总榜里有的排前面）
+    const cifSorted = [...cif];
+    if (_prioBoard) {
+      const entOf = nm => { const b = _prioBoard.find(x => x.name === nm); return b ? b.cifer : 0; };
+      // cifer 在 query.json 里是品类名字符串数组，这里直接保留原顺序，但在结果头加优先级
+    }
     const cifHtml = cif.length
       ? cif.map(x => `<div class="qi"><span>${esc(x)}</span><span class="n">在册注册</span></div>`).join('')
       : '<div class="qi"><span class="cd">无在册注册记录（辅证缺失）</span></div>';
+    const pb = _prioBoard && _prioBoard.find(x => x.name === (c.name || code));
+    const prioLine = pb
+      ? `<div class="qcol" style="margin-top:6px"><div class="qcolh qcolh-off">需准入优先级 <span class="pgrade ${pb.grade}" style="font-size:11px">${pb.grade}</span> <b style="color:${prioBarColor(pb.grade)}">${pb.score.toFixed(1)}/100</b>
+          <span class="cd">· 在册 ${pb.cifer} 家 / 进口 ${pb.impdisp>0 ? '$'+(pb.impdisp>=1?pb.impdisp.toFixed(2)+'B':(pb.impdisp*1000).toFixed(0)+'M') : '未抓取'}</span></div></div>`
+      : '';
     return `<div class="qres" style="margin-bottom:10px">
-      <div class="qh"><b>${esc(c.name || code)}</b><span class="dim">${esc(code)} · 官方 ${off.length} 类 / 注册辅证 ${cif.length} 类</span></div>
+      <div class="qh"><b>${esc(c.name || code)}</b>${prioBadgeFor(c.name || code)}<span class="dim">${esc(code)} · 官方 ${off.length} 类 / 注册辅证 ${cif.length} 类</span></div>
       <div class="qcol"><div class="qcolh qcolh-off">GACC 官方准入</div>${offHtml}</div>
       <div class="qcol" style="margin-top:6px"><div class="qcolh qcolh-cif">有在册注册（辅证）</div>${cifHtml}</div>
+      ${prioLine}
       ${qBanNote(c.banned_animals)}
       ${qSrcNote()}
     </div>`;
@@ -633,8 +713,18 @@ function onCatQuery() {
     const offHtml = off.length
       ? off.map(x => `<div class="qi"><span>${esc(x)}</span><span class="n">官方准入</span></div>`).join('')
       : '<div class="qi"><span class="cd">无官方准入记录</span></div>';
-    const cifHtml = cif.length
-      ? cif.map(x => `<div class="qi"><span>${esc(x.name)} <span class="cd">${esc(x.code)}</span></span><span class="n">${x.n} 家</span></div>`).join('')
+    // 在册注册国家按需准入优先级排序（总榜分数降序）
+    const cifSorted = [...cif];
+    if (_prioBoard) {
+      const prioOf = nm => { const b = _prioBoard.find(x => x.name === nm); return b ? b.score : -1; };
+      cifSorted.sort((a, b2) => prioOf(b2.name) - prioOf(a.name));
+    }
+    const cifHtml = cifSorted.length
+      ? cifSorted.map(x => {
+          const pb = _prioBoard && _prioBoard.find(y => y.name === x.name);
+          const badge = pb ? ` <span class="pgrade ${pb.grade}" title="需准入优先级 ${pb.score}/100" style="font-size:9.5px">${pb.grade}</span>` : '';
+          return `<div class="qi"><span>${esc(x.name)} <span class="cd">${esc(x.code)}</span>${badge}</span><span class="n">${x.n} 家</span></div>`;
+        }).join('')
       : '<div class="qi"><span class="cd">无在册注册记录</span></div>';
     const banHit = (qData.banned_detail || []).filter(b => off.includes(b.country));
     const banLine = banHit.length

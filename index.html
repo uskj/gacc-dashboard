@@ -30,7 +30,28 @@
 .qban{padding:7px 11px;font-size:12px;color:#b03030;background:rgba(224,85,85,.08);border-left:3px solid #e05555;margin:6px 11px;border-radius:4px}
 .qsrc{padding:7px 11px;font-size:10.5px;color:var(--dim);border-top:1px dashed var(--line);line-height:1.6}
 .qsrc a{color:var(--acc)}
-.qmore{padding:7px 11px;font-size:11.5px;color:var(--dim);border-top:1px solid var(--line);background:#f7f9fc}*{box-sizing:border-box;margin:0;padding:0}
+.qmore{padding:7px 11px;font-size:11.5px;color:var(--dim);border-top:1px solid var(--line);background:#f7f9fc}
+.pbar{height:7px;border-radius:4px;background:#eef1f7;overflow:hidden;margin:6px 0 3px}
+.pbar i{display:block;height:100%;border-radius:4px}
+.pgrade{display:inline-block;min-width:20px;text-align:center;font-weight:800;font-size:11px;padding:1px 6px;border-radius:5px;margin-right:7px;vertical-align:middle}
+.pgrade.A{background:rgba(224,85,85,.14);color:#b03030}
+.pgrade.B{background:rgba(245,165,36,.16);color:#a86a08}
+.pgrade.C{background:rgba(47,111,237,.12);color:#2657b8}
+.pgrade.D{background:#eef1f7;color:#7a8699}
+.prorow{display:grid;grid-template-columns:44px 1fr 60px 64px 70px 90px;gap:8px;align-items:center;padding:8px 10px;border-bottom:1px solid #eef1f6;font-size:12px}
+.prorow:last-child{border-bottom:none}
+.prorow .rank{font-weight:800;color:var(--dim);font-size:12px;text-align:center}
+.prorow .cname{font-weight:700}
+.prorow .cname .sub{color:var(--dim);font-size:10.5px;font-weight:400}
+.prorow .num{text-align:center;color:var(--txt)}
+.prorow .num .v{font-weight:700}
+.prorow .num .u{color:var(--dim);font-size:10px}
+.prorow .score{text-align:center;font-weight:800}
+.phead{display:grid;grid-template-columns:44px 1fr 60px 64px 70px 90px;gap:8px;padding:6px 10px;font-size:10.5px;color:var(--dim);font-weight:700;border-bottom:1px solid var(--line);text-align:center}
+.phead .cname{text-align:left}
+.phead .cname.sub{text-align:left}
+@media(max-width:640px){.prorow,.phead{grid-template-columns:32px 1fr 48px 60px;}.prorow .num:nth-child(5),.phead .num:nth-child(5){display:none}}
+
 body{background:var(--bg);color:var(--txt);font-family:'Segoe UI','Microsoft YaHei',sans-serif;font-size:13.5px}
 a{color:var(--acc);text-decoration:none}
 .app{display:grid;grid-template-columns:250px 1fr;min-height:100vh}
@@ -228,6 +249,7 @@ footer{margin:18px;padding:14px 18px;font-size:11px;color:var(--dim);
       <div class="mg">市场情报</div>
       <div class="mi" data-plan="单栏比对"><span class="ic">⇄</span>单栏比对<span class="n">215</span></div>
       <div class="mi" data-plan="中药材情报"><span class="ic">☗</span>中药材情报</div>
+      <div class="mi" data-go="prioCard"><span class="ic">⌁</span>需准入优先级总榜</div>
       <div class="mi" data-go="entDirCard"><span class="ic">⌗</span>工厂档案</div>
       <div class="mi" id="miCifer" data-go="ciferCard"><span class="ic">▣</span>GACC 注册矩阵<span class="n">183</span></div>
       <div class="mi" id="miEntDir" data-go="entDirCard"><span class="ic">▤</span>境外企业准入名录<span class="n" id="entDirN">…</span></div>
@@ -355,6 +377,28 @@ footer{margin:18px;padding:14px 18px;font-size:11px;color:var(--dim);
       </div>
       <datalist id="qCountryList"></datalist>
       <datalist id="qCatList"></datalist>
+    </div>
+
+    <!-- 需准入国家优先级总榜 (三源加权: 官方准入×CIFER在册×进口意向) -->
+    <div class="mcard" id="prioCard" style="margin-top:18px">
+      <div class="mhead">
+        <div><h2>需准入国家优先级总榜 · 意向最强 × 最可能批</h2>
+          <div class="sub">只列"有 CIFER 在册注册企业 + 有 GACC 官方准入品类"的国家，三源加权 0–100 分：官方准入品类数（40）× CIFER 在册企业数（30，log 归一）× 对华进口额/意向（30，log 归一 + leadPriority 加成），A/B/C/D 分级，按优先级降序 · 数据源 <code>data/priority_board.json</code></div>
+        </div>
+        <div class="acts"><button class="btn" onclick="renderPriorityBoard()">↻ 重载</button></div>
+      </div>
+      <div id="prioBody" style="padding:14px 18px;font-size:12px;color:var(--dim)">
+        <div class="dim"><span class="spin"></span> 总榜加载中…</div>
+      </div>
+      <div class="mstat">
+        <div class="lg">
+          <span><i class="sw" style="background:rgba(224,85,85,.5)"></i>A 最优先</span>
+          <span><i class="sw" style="background:rgba(245,165,36,.5)"></i>B 重点</span>
+          <span><i class="sw" style="background:rgba(47,111,237,.5)"></i>C 观察</span>
+          <span><i class="sw" style="background:#f2f4f8;border:1px solid var(--line)"></i>D 储备</span>
+        </div>
+        <div class="mid">共 <b id="prioN">--</b> 国 · 更新 <span id="prioDate">--</span></div>
+      </div>
     </div>
 
     <!-- 重点国情报总览 副表 (双源对照, 默认折叠) -->
