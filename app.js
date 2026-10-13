@@ -1,4 +1,5 @@
-const API_BASE = location.protocol.startsWith('http') ? location.origin + '/data' : './data';
+const _base = (location.pathname || '/').replace(/[^/]*$/, '');
+const API_BASE = location.protocol.startsWith('http') ? location.origin + _base + 'data' : './data';
 const STATES = { "核心":"core","重点":"focus","准入":"ok","部分":"part","暂停":"pause","未准入":"none","未跟踪":"na" };
 const CORE_ONLY = ["核心","重点"];
 
@@ -578,8 +579,8 @@ async function renderPriorityBoard() {
     </div>`;
 }
 function prioBadgeFor(name) {
-  if (!_prioByIso3 && !_prioByQcode) return '';
-  const b = _prioBoard && _prioBoard.find(x => x.name === name);
+  if (!_prioBoard) return '';
+  const b = _prioBoard.find(x => x.name === name);
   if (!b) return '';
   return `<span class="pgrade ${b.grade}" title="需准入优先级 ${b.score.toFixed(1)} / 100 · 在册 ${b.cifer} 家">${b.grade} ${b.score.toFixed(0)}</span>`;
 }
