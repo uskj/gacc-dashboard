@@ -3,11 +3,13 @@
 生成"需准入企业优先级总榜"数据：国家级三源加权。
 三源：
   1. GACC 官方准入品类数（query.json countries[].official 里 status=='准入' 的品类数）— 权重 40%
-  2. CIFER 在册注册企业数（cifer_enterprises_all.json 按国家去重 appSeqNo）— 权重 30%
+  2. CIFER 在册注册企业数 — 权重 30%
+     （cifer_enterprises_all.json，口径：仅 statusName=='有效'，且企业名归一化后去重，
+       排除同企业多品类/多产品的重复注册编号，排除注销与暂停进口）
   3. 对华进口额（UN Comtrade，latest.json verifiedLeads2025 / countries[].imports）— 权重 30%
 输出 data/priority_board.json
 """
-import json, math, os
+import json, math, os, re
 
 BASE = os.path.dirname(os.path.abspath(__file__))
 DATA = os.path.join(BASE, 'data')
@@ -15,6 +17,9 @@ DATA = os.path.join(BASE, 'data')
 def load(name):
     with open(os.path.join(DATA, name), encoding='utf-8') as f:
         return json.load(f)
+
+def norm_ent_name(n):
+    return re.sub(r'\s+', ' ', str(n or '')).strip().upper()
 
 q = load('query.json')
 cf = load('cifer_enterprises_all.json')
@@ -33,8 +38,8 @@ for code, c in q['countries'].items():
         official_count[code] = len(off)
         official_total[code] = len(off)
 
-# --- 源2：CIFER 在册企业数 ---
-cifer_cnt = {}        # cifer 国家键 -> 去重企业数
+# --- 源2：CIFER 在册企业数（有效 & 企业名去重） ---
+cifer_cnt = {}        # cifer 国家键 -> 有效在册企业数（企业名归一化去重）
 cifer_name = {}
 for k, v in cf.items():
     recs = v.get('records') or []
@@ -42,8 +47,13 @@ for k, v in cf.items():
         continue
     seen = set()
     for r in recs:
-        if r.get('appSeqNo'):
-            seen.add(r['appSeqNo'])
+        if r.get('status') or r.get('statusName'):
+            st = r.get('statusName') or ''
+            if st and st != '有效':
+                continue
+        nm = norm_ent_name(r.get('enterpriseName'))
+        if nm:
+            seen.add(nm)
     cifer_cnt[k] = len(seen)
     cifer_name[k] = recs[0].get('countryName') or k
 
@@ -154,8 +164,9 @@ rows.sort(key=lambda x: (-x['score'], -x['enterprises']))
 out = {
     '_meta': {
         'generated': '2026-10-13',
-        'method': '三源加权：官方准入品类(40%) × CIFER在册企业数(30%,log归一) × 对华进口额(30%,log归一+leadPriority加成)',
+        'method': '三源加权：官方准入品类(40%) × CIFER在册有效企业数(30%,企业名去重,log归一) × 对华进口额(30%,log归一+leadPriority加成)',
         'weights': {'official': 0.40, 'enterprises': 0.30, 'import': 0.30},
+        'cifer_mix': 'count of statusName==有效 records with normalized enterpriseName dedup',
         'n_countries': len(rows),
         'n_with_import': sum(1 for r in rows if r['import_usd'] > 0),
         'n_with_enterprises': sum(1 for r in rows if r['enterprises'] > 0),
